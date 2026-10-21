@@ -1,0 +1,9 @@
+# hypotheses/cursor — evidence before any fix
+# date:    2026-10-20
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter c3468c1 2026-10-20 (branch v0.0.11), release build with --features db
+# command: python3 hypotheses/cursor/check.py
+
+cursor: zyvm, zytw agree; inside `>>|` the cursor is hidden and never shown
+  DIS-ZYE-004  HOLDS
+exit status: 1

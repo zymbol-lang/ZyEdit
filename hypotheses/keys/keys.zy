@@ -1,0 +1,13 @@
+// What `<<|` hands back for each key a GUI-style editor needs.
+//
+// Hypotheses DIS-ZYE-001, 002 and 003 (HALLAZGOS.md). Reads nineteen keys and
+// prints the code point of each, separated by spaces: the shape of
+// zyquality/tui/keys_control.zy, so the case can move there once the findings
+// are fixed. check.py sends the keys through a real pty — `--keys` hands the
+// program keys that are already decoded, and the decoding is what is asked.
+>>| {
+    @ _i:1..19 {
+        <<| t
+        >> ##!t " "
+    }
+}

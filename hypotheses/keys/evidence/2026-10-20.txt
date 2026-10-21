@@ -1,0 +1,31 @@
+# hypotheses/keys — evidence before any fix
+# date:    2026-10-20
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter c3468c1 2026-10-20 (branch v0.0.11), release build with --features db
+# command: python3 hypotheses/keys/check.py --table
+
+  Ctrl+Z       1a                   -> 26
+  Ctrl+S       13                   -> 19
+  Ctrl+C       03                   -> 3
+  Ctrl+Q       11                   -> 17
+  Ctrl+V       16                   -> 22
+  Ctrl+H       08                   -> 8
+  Ctrl+I       09                   -> 9
+  Home         1b 5b 48             -> 0
+  End          1b 5b 46             -> 0
+  Delete       1b 5b 33 7e          -> 0
+  PageUp       1b 5b 35 7e          -> 0
+  PageDown     1b 5b 36 7e          -> 0
+  F1           1b 4f 50             -> 0
+  Shift+Tab    1b 5b 5a             -> 0
+  Shift+Right  1b 5b 31 3b 32 43    -> 8594
+  Ctrl+Right   1b 5b 31 3b 35 43    -> 8594
+  Ctrl+/       1f                   -> 55
+  Ctrl+Space   00                   -> 32
+  Alt+x        1b 78                -> 120
+
+keys: 19 keys through a pty, zyvm, zytw agree
+  DIS-ZYE-001  HOLDS
+  DIS-ZYE-002  HOLDS
+  DIS-ZYE-003  HOLDS
+exit status: 1

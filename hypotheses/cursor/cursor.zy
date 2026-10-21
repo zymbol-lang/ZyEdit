@@ -1,0 +1,14 @@
+// Can a full-screen program show the terminal's cursor where the next
+// character will go?
+//
+// Hypothesis DIS-ZYE-004 (HALLAZGOS.md). Today it cannot: `>>|` hides the
+// cursor on entry and nothing in the language shows it. This program is what an
+// editor does on its first frame: draw a line, then wait for a key with the
+// caret after the text. When the finding is decided, the line that shows the
+// cursor goes where the comment says, and check.py should report FIXED.
+>>| {
+    >>!
+    >>~ (1, 1) > "hello"
+    // here: show the terminal's cursor at row 1, column 6
+    <<| _k
+}
