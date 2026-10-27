@@ -56,7 +56,7 @@
 | [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
 | [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **abierto** · para v0.0.12 |
 | [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
-| [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado, en 2 a 6 escrituras, y `>>!` en otra; un repintado se ve mientras se dibuja, la pantalla en blanco primero | **abierto** · para v0.0.12 |
+| [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado y ningún programa puede enseñar una pantalla entera de una vez, así que un repintado se ve mientras se dibuja (desde el 2026-10-27, una escritura por `>>~` y no cuatro) | **abierto** · la 2 para v0.0.12 |
 
 ---
 
@@ -643,7 +643,8 @@ Ya no hay pantalla en blanco, pero sí 146 escrituras y una pantalla a medio dib
 **Lo que no sirve sin más: vaciar la salida sólo cuando el programa espera.** Sería invisible
 para el lenguaje y haría de cada fotograma una sola escritura, pero GO pinta «考慮中» y la piedra
 recién puesta y se pone a pensar sin esperar ninguna tecla (`対局.zy`, líneas 518–519 y
-585–586). Con esa regla, las dos cosas aparecerían cuando la IA ya hubiera terminado.
+585–586), y Chaturanga hace lo mismo con «thinking…» (`क्रीडा.zy`, líneas 277–279). Con esa
+regla, el aviso y la jugada aparecerían cuando la máquina ya hubiera terminado.
 
 **Lo esperable**, de menos a más, a elegir por el autor:
 1. **Una escritura por `>>~` y por `>>!`** en los dos motores: `queue!` en lugar de `execute!`, y un
@@ -662,8 +663,27 @@ recién puesta y se pone a pensar sin esperar ninguna tecla (`対局.zy`, línea
 Un símbolo nuevo pasaría antes por `zymbol-design/SYMBOLS.md` § 17; una función de `std/term`,
 no.
 
+**Decisión del autor (2026-10-27): la 1 ahora, en la v0.0.11, y la 2 en la v0.0.12.** La forma
+del «enséñalo ya» queda por decidir.
+
+**La 1, hecha el mismo día** en los dos motores (`emit_positioned` en el tree-walker,
+`print_at` en `zymbol-host`): los mismos bytes, en una escritura por `>>~`. El tree-walker
+evalúa ahora los elementos de un `>>~` antes de escribir nada, como siempre hizo la VM. Con los
+dos motores reconstruidos (`hypotheses/frame/evidence/2026-10-27-one-write.txt`):
+
+| | antes | con la 1 |
+|---|---|---|
+| la sonda: un borrado y 23 `>>~` | 93 escrituras | 24 |
+| ZyEdit, → o una letra | 14 | 4 |
+| ZyEdit, ↓ | 20 | 6 |
+| ZyEdit, una página | 146 | 48 |
+| ZyEdit antes del dibujo por diferencias, cualquier tecla | 147 | 49 |
+
+La última fila es la que dice que la 1 la gana cualquier programa sin tocarlo. Los bytes
+coinciden en todas: 260, 376, 2 841 y 2 252.
+
 **Su «después»:** `hypotheses/frame/check.py` da `FIXED` (un fotograma, una escritura) con la
-salida 2 o la 3. Con la 1 baja de 93 a 24 y el hallazgo sigue en pie.
+salida 2. Con la 1 baja de 93 a 24, y el hallazgo sigue en pie.
 
 ---
 
