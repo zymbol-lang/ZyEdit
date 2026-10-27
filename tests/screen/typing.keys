@@ -1,0 +1,11 @@
+# type, split a line, backspace, move, save
+H
+i
+ENTER
+!
+UP
+RIGHT
+x
+CTRL+S
+SHOW
+CTRL+Q

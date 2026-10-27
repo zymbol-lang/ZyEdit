@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# hypotheses/run.sh — every design hypothesis, both Rust engines, one verdict.
+# hypotheses/run.sh — every hypothesis, both Rust engines, one verdict.
 #
 #   bash hypotheses/run.sh
 #
@@ -10,8 +10,12 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 worst=0
-for check in "$HERE"/*/check.py; do
-    python3 "$check"
+for check in "$HERE"/*/check.py "$HERE"/*/check.sh; do
+    [[ -f "$check" ]] || continue
+    case "$check" in
+        *.py) python3 "$check" ;;
+        *.sh) bash "$check" ;;
+    esac
     status=$?
     (( status > worst )) && worst=$status
 done

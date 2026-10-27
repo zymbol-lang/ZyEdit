@@ -1,0 +1,608 @@
+// zyedit.zy — a terminal text editor in Zymbol.
+//
+//   zymbol run zyedit.zy [file ...]     open files, or an empty buffer
+//
+// Ctrl+G opens a prompt for a line number or a command; the command `help` lists every key.
+// The keys are the ones of a GUI editor wherever a terminal delivers them. Where it does
+// not (README: DIS-ZYE-001, 002, 003), a Ctrl key of its own stands in until v0.0.12.
+<# ./src/buffer => b
+<# ./src/history => h
+<# std/io => io
+<# std/term => t
+
+// ── screen ────────────────────────────────────────────────────────────────
+
+// Width of the line-number margin: the digits of the last line number, and a space. 0 when off.
+gutter_width(lines, numbers) {
+    ? !numbers { <~ 0 }
+    total = lines$#
+    <~ ("{total}")$# + 1
+}
+
+// Draws the visible lines, the selection, the status line and the caret. `hs` is how many
+// columns the text is scrolled to the left; `ar` is the row of the selection's anchor (0 if none).
+render(lines, row, col, top, hs, ar, ac, name, dirty, note, tag, numbers) {
+    (H, W) = >>?
+    body = H - 1
+    gw = gutter_width(lines, numbers)
+    wt = W - gw
+    >>!
+    ? body >= 1 {
+        @ i:1..body {
+            n = top + i - 1
+            ? n <= lines$# {
+                ? gw > 0 { >>~ (i, 1, 0, 244, 0) > t::pad_left("{n}", gw - 1) }
+                (text, x) = b::view(b::expand(lines[n]), hs)
+                >>~ (i, gw + x + 1) > t::truncate(text, wt - x)
+            }
+        }
+    }
+    ? ar > 0 {
+        (r1, c1, r2, c2) = b::order(ar, ac, row, col)
+        ? body >= 1 {
+            @ i:1..body {
+                n = top + i - 1
+                ? n >= r1 && n <= r2 && n <= lines$# {
+                    line = lines[n]
+                    sc = 0
+                    ec = line$#
+                    ? n == r1 { sc = c1 }
+                    ? n == r2 { ec = c2 }
+                    ? ec > sc {
+                        shown_sc = b::expand(b::before(line, sc))
+                        seg = b::after(b::expand(b::before(line, ec)), shown_sc$#)
+                        xs = t::width(shown_sc) - hs
+                        text = seg
+                        x = xs
+                        ? xs < 0 { (text, x) = b::view(seg, 0 - xs) }
+                        ? seg$# > 0 && wt - x > 0 { >>~ (i, gw + x + 1, 0, 16, 250) > t::truncate(text, wt - x) }
+                    }
+                }
+            }
+        }
+    }
+    mark = ""
+    ? dirty { mark = " [+]" }
+    sel = ""
+    ? ar > 0 { sel = " SEL" }
+    // The column shown is the one the terminal draws the caret in, tabs and wide glyphs
+    // counted, not the number of Chars before it.
+    (under, cx) = b::cell(lines[row], col)
+    status = " " name mark tag sel "  " row ":" (cx + 1) "/" lines$# "  " note
+    >>~ (H, 1, 0, 16, 250) > t::pad_right(status, W)
+
+    // The caret: the cluster under the cursor, or a space past the end, drawn reversed.
+    >>~ (row - top + 1, gw + cx - hs + 1, 0, 16, 250) > under
+}
+
+// The first column to draw so that the caret, and the cluster under it, are on screen.
+scroll(lines, row, col, hs, W) {
+    (under, x) = b::cell(lines[row], col)
+    w = t::width(under)
+    ? x < hs {
+        ? x + w <= W { <~ 0 }
+        <~ x
+    }
+    ? x + w > hs + W { <~ x + w - W }
+    <~ hs
+}
+
+// The first line and the first column to draw so that the cursor is on screen.
+fit(lines, row, col, top, hs, numbers) {
+    (H, W) = >>?
+    ? row < top { top = row }
+    ? row >= top + H - 1 { top = row - (H - 1) + 1 }
+    <~ (top, scroll(lines, row, col, hs, W - gutter_width(lines, numbers)))
+}
+
+// Every row fits in 80 columns, the width `--keys` draws on.
+help_screen() {
+    >>!
+    rows = [
+        "ZyEdit",
+        "",
+        "  arrows            move              Ctrl+U / Ctrl+E   start / end of the line",
+        "  Ctrl+P / Ctrl+L   page up / down    Ctrl+G   a line number, or a command",
+        "  Ctrl+B            start / stop selecting; the arrows then extend it",
+        "  Ctrl+A            select all        Esc      clear the selection",
+        "  Ctrl+C / Ctrl+X / Ctrl+V            copy / cut / paste",
+        "  Ctrl+Z / Ctrl+Y   undo / redo       Ctrl+D   delete forward",
+        "  Ctrl+F            find              Ctrl+K   find next",
+        "  Ctrl+R            replace: y yes, n skip, a all the rest, Esc stop",
+        "  Ctrl+S            save              Ctrl+T   save as",
+        "  Ctrl+O            open a file (empty name: a new buffer)",
+        "  Ctrl+N            next buffer       Ctrl+W   close the buffer",
+        "  Ctrl+Q            quit (twice, when there are unsaved changes)",
+        "  Tab               four spaces; on a selection, indent its lines",
+        "",
+        "Commands for Ctrl+G:  <number>  prev  next  close  indent  unindent",
+        "                      case  numbers  help",
+        "",
+        "Press any key."
+    ]
+    i = 0
+    @ line:rows {
+        i = i + 1
+        >>~ (i, 1) > line
+    }
+    <<| _k
+}
+
+// Waits for a key, and gives '\0' if the window changes size meanwhile, so that the caller
+// redraws. `<<|` alone would sleep through a resize until the next key (GAP-ZYE-012), so this
+// polls with `<<|?`.
+wait_key(h, w) {
+    @ {
+        <<|? k
+        ? k <> '\0' { <~ k }
+        (nh, nw) = >>?
+        ? nh <> h || nw <> w { <~ '\0' }
+        @~ 40
+    }
+}
+
+// ── prompts ───────────────────────────────────────────────────────────────
+
+// Asks for a line of text on the last row: (accepted, text). Enter accepts, Esc cancels.
+prompt(label, init) {
+    (H, W) = >>?
+    text = init
+    @ {
+        >>~ (H, 1) > t::pad_right(label text, W)
+        >>~ (H, t::width(label text) + 1, 0, 16, 250) > " "
+        <<| k
+        ? k == '\n' { <~ (#1, text) }
+        _? k == 0d27 { <~ (#0, "") }
+        _? k == 0d127 { text = b::before(text, text$# - 1) }
+        _? !((##!k < 32) || (##!k == 127)) { text = text k }
+    }
+}
+
+// Asks a yes/no question on the last row: only y (or Y) is a yes.
+confirmed(question) {
+    (H, W) = >>?
+    >>~ (H, 1) > t::pad_right(question, W)
+    <<| k
+    <~ k == 'y' || k == 'Y'
+}
+
+// A line number typed by the person: 0 when it is not a whole number.
+// `#|text|` reads a text as a number, and hands the text back untouched when it is not one.
+to_number(text) {
+    n = #|text|
+    ? (n#?)[1] <> "###" { <~ 0 }
+    <~ n
+}
+
+// ── text ──────────────────────────────────────────────────────────────────
+
+// Removes the selected text as part of group g; returns where the cursor goes.
+delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col) {
+    (r1, c1, r2, c2) = b::order(ar, ac, row, col)
+    h::remove(lines<~, done<~, undone<~, g, r1, c1, r2, c2, row, col)
+    <~ (r1, c1)
+}
+
+// The lines of the file, its line ending, whether it must not be saved over, and what to
+// tell the person. A file that cannot be read (it is not valid UTF-8, GAP-ZYE-006) is never
+// replaced by an empty buffer that Ctrl+S would then write over it.
+load(name) {
+    ? name$# == 0 { <~ ([""], "\n", #0, "") }
+    ? !io::exists(name) { <~ ([""], "\n", #0, "new file") }
+    text = io::read(name)
+    ? text$! { <~ ([""], "\n", #1, "cannot read {name}: Ctrl+S is off, Ctrl+T saves elsewhere") }
+    eol = b::eol_of(text)
+    <~ (b::from_text(text, eol), eol, #0, "")
+}
+
+// Replaces what the find prompt found, one match at a time, asking about each. y replaces,
+// n skips, a replaces this one and every other without asking, anything else stops. It goes
+// from the cursor to the end of the text and does not wrap round.
+// Returns (count, row, col, top, hs).
+replace_each(lines<~, done<~, undone<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers) {
+    count = 0
+    every = #0
+    @ {
+        (found, r, c) = b::find_next(lines, row, col, needle, nocase)
+        ? !found || r < row || (r == row && c < col) { @! }
+        key = 'y'
+        ? !every {
+            (row, col) = (r, c + needle$#)
+            (top, hs) = fit(lines, row, col, top, hs, numbers)
+            render(lines, row, col, top, hs, r, c, name, h::top_group(done) <> saved, "replace? y n a Esc", tag, numbers)
+            <<| key
+        }
+        ? key == 'a' {
+            every = #1
+            key = 'y'
+        }
+        ? key == 'y' {
+            h::remove(lines<~, done<~, undone<~, g, r, c, r, c + needle$#, r, c)
+            (row, col) = h::insert(lines<~, done<~, undone<~, g, 'i', r, c, with, r, c)
+            count = count + 1
+        } _? key == 'n' {
+            (row, col) = (r, c + needle$#)
+        } _ { @! }
+    }
+    <~ (count, row, col, top, hs)
+}
+
+// ── buffers ───────────────────────────────────────────────────────────────
+// Every buffer is a tuple (lines, row, col, top, hs, done, undone, saved, name, locked, eol),
+// eol being the line ending it is saved with (b::eol_of). The one being edited lives in
+// variables, and its slot in `bufs` holds `blank()`: a slot that kept a second reference to
+// the text would make the next keystroke copy all of it.
+
+blank() { <~ ([""], 1, 0, 1, 0, [], [], 0, "", #0, "\n") }
+
+slot_dirty(slot) {
+    (_l, _r, _c, _t, _h, done, _u, saved, _n, _k, _e) = slot
+    <~ h::top_group(done) <> saved
+}
+
+any_dirty(bufs) {
+    ? bufs$# >= 1 {
+        @ i:1..bufs$# {
+            ? slot_dirty(bufs[i]) { <~ #1 }
+        }
+    }
+    <~ #0
+}
+
+// Puts `slot` (the buffer being left) in position `cur` of bufs, takes the one at `to` out,
+// and returns it.
+swap(bufs<~, cur, to, slot) {
+    bufs[cur]$~ slot
+    next = bufs[to]
+    bufs[to]$~ blank()
+    <~ next
+}
+
+// What the status line says after the file name: the line ending when it is CRLF, the
+// buffer's place among several, and a search that ignores case.
+tag_of(cur, n, nocase, eol) {
+    out = ""
+    ? eol == "\r\n" { out = " CRLF" }
+    ? n > 1 { out = out " [{cur}/{n}]" }
+    ? nocase { out = out " nocase" }
+    <~ out
+}
+
+// ── main ──────────────────────────────────────────────────────────────────
+
+>< args
+name = ""
+? args$# > 0 { name = args[1] }
+(lines, eol, locked, note) = load(name)
+row = 1
+col = 0
+top = 1
+hs = 0
+done = []
+undone = []
+g = 0               // the group of the last edit; each user action gets the next one
+saved = 0           // top_group of `done` when the file was last saved or read
+ar = 0              // the selection's anchor: row 0 means no selection
+ac = 0
+marking = #0        // Ctrl+B: the arrows extend the selection
+clip = ""
+needle = ""
+nocase = #0
+numbers = #1
+bufs = [blank()]
+cur = 1
+? args$# >= 2 {
+    // the other files named on the command line, behind the first
+    @ i:2..args$# {
+        bufs[cur]$~ (lines, row, col, top, hs, done, undone, saved, name, locked, eol)
+        bufs = bufs$+ blank()
+        cur = bufs$#
+        name = args[i]
+        (lines, eol, locked, note) = load(name)
+        (row, col, top, hs, done, undone, saved) = (1, 0, 1, 0, [], [], 0)
+    }
+    slot = (lines, row, col, top, hs, done, undone, saved, name, locked, eol)
+    (lines, row, col, top, hs, done, undone, saved, name, locked, eol) = swap(bufs<~, cur, 1, slot)
+    slot = blank()           // drop the second reference to the text
+    cur = 1
+}
+? note$# == 0 { note = "Ctrl+G: help" }
+asked = #0
+
+>>| {
+    @ {
+        (top, hs) = fit(lines, row, col, top, hs, numbers)
+        tag = tag_of(cur, bufs$#, nocase, eol)
+        render(lines, row, col, top, hs, ar, ac, name, h::top_group(done) <> saved, note, tag, numbers)
+        note = ""
+        (H, W) = >>?
+        k = wait_key(H, W)
+        ? k == '\0' { @> }               // the window changed size: draw again
+
+        ? k == 0d17 {
+            ? (h::top_group(done) == saved && !any_dirty(bufs)) || asked { @! }
+            note = "unsaved changes: Ctrl+Q again to quit"
+            asked = #1
+        } _ {
+            asked = #0
+            nav = #0                    // a key that moves the cursor
+            go = 0                      // a buffer to switch to, set by Ctrl+N and the commands
+            ? k == 0d19 || k == 0d20 {
+                target = name
+                ? k == 0d20 || name$# == 0 || locked {
+                    init = name
+                    ? locked { init = "" }
+                    (asked_name, target) = prompt("Save as: ", init)
+                    ? !asked_name { target = "" }
+                }
+                ? target$# == 0 { note = "not saved" }
+                _? locked && target == name { note = "will not overwrite a file that could not be read" }
+                _? target <> name && io::exists(target) && !confirmed("{target} exists. Overwrite? (y/n) ") {
+                    note = "not saved"
+                }
+                _ {
+                    r = io::write(target, b::to_text(lines, eol))
+                    ? r$! { note = "could not save" } _ {
+                        name = target
+                        locked = #0
+                        saved = h::top_group(done)
+                        g = g + 1           // a key typed after the save starts an edit of its own
+                        note = "saved"
+                    }
+                }
+            }
+            _? k == '↑' { (row, col) = b::up(lines, row, col); nav = #1 }
+            _? k == '↓' { (row, col) = b::down(lines, row, col); nav = #1 }
+            _? k == '←' { (row, col) = b::left(lines, row, col); nav = #1 }
+            _? k == '→' { (row, col) = b::right(lines, row, col); nav = #1 }
+            _? k == 0d5 { (row, col) = b::end(lines, row, col); nav = #1 }
+            _? k == 0d21 { (row, col) = b::home(lines, row, col); nav = #1 }
+            _? k == 0d16 {
+                row = row - (H - 2)
+                ? row < 1 { row = 1 }
+                (row, col) = b::clamp(lines, row, col)
+                nav = #1
+            }
+            _? k == 0d12 {
+                row = row + (H - 2)
+                ? row > lines$# { row = lines$# }
+                (row, col) = b::clamp(lines, row, col)
+                nav = #1
+            }
+            _? k == 0d2 {
+                marking = !marking
+                ? marking { ar = row; ac = col; note = "selecting" } _ { ar = 0 }
+            }
+            _? k == 0d1 {
+                ar = 1
+                ac = 0
+                marking = #0
+                row = lines$#
+                col = lines[row]$#
+            }
+            _? k == 0d27 { ar = 0; marking = #0 }
+            _? k == 0d3 || k == 0d24 {
+                ? ar == 0 { note = "nothing selected" } _ {
+                    (r1, c1, r2, c2) = b::order(ar, ac, row, col)
+                    clip = b::text_range(lines, r1, c1, r2, c2)
+                    ? k == 0d24 {
+                        g = g + 1
+                        (row, col) = delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col)
+                    }
+                    ar = 0
+                    marking = #0
+                }
+            }
+            _? k == 0d22 {
+                ? clip$# == 0 { note = "clipboard is empty" } _ {
+                    g = g + 1
+                    r = row
+                    c = col
+                    ? ar > 0 { (row, col) = delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col) }
+                    (row, col) = h::insert(lines<~, done<~, undone<~, g, 'i', row, col, clip, r, c)
+                    ar = 0
+                    marking = #0
+                }
+            }
+            _? k == 0d26 || k == 0d25 {
+                ok = #0
+                r = row
+                c = col
+                ? k == 0d26 { (ok, r, c) = h::undo(lines<~, done<~, undone<~) }
+                _ { (ok, r, c) = h::redo(lines<~, done<~, undone<~) }
+                ? ok { (row, col) = (r, c) } _ { note = "nothing to do" }
+                ar = 0
+                marking = #0
+            }
+            _? k == 0d6 || k == 0d11 {
+                found = #1
+                ? k == 0d6 { (found, needle) = prompt("Find: ", needle) }
+                ? found && needle$# > 0 {
+                    (found, r, c) = b::find_next(lines, row, col, needle, nocase)
+                    ? found {
+                        ar = r
+                        ac = c
+                        marking = #0
+                        (row, col) = (r, c + needle$#)
+                    } _ { note = "not found" }
+                }
+            }
+            _? k == 0d18 {
+                (found, needle) = prompt("Replace: ", needle)
+                ? found && needle$# > 0 {
+                    (with_ok, with) = prompt("With: ", "")
+                    ? with_ok {
+                        g = g + 1
+                        (count, row, col, top, hs) = replace_each(lines<~, done<~, undone<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers)
+                        col = b::snap(lines[row], col)
+                        ar = 0
+                        marking = #0
+                        note = "replaced {count}"
+                    }
+                }
+            }
+            _? k == 0d7 {
+                (found, text) = prompt("Go to line or command: ", "")
+                ? found {
+                    n = to_number(text)
+                    ? n >= 1 {
+                        ? n > lines$# { note = "no such line" } _ {
+                            (row, col) = b::clamp(lines, n, col)
+                            ar = 0
+                            marking = #0
+                        }
+                    }
+                    _? text == "help" { help_screen() }
+                    _? text == "next" { go = cur % bufs$# + 1 }
+                    _? text == "prev" { go = (cur + bufs$# - 2) % bufs$# + 1 }
+                    _? text == "close" { go = -1 }
+                    _? text == "case" {
+                        nocase = !nocase
+                        note = "search ignores case"
+                        ? !nocase { note = "search respects case" }
+                    }
+                    _? text == "numbers" { numbers = !numbers }
+                    _? text == "indent" || text == "unindent" {
+                        // every line of the selection, or the current one
+                        g = g + 1
+                        first = row
+                        last = row
+                        ? ar > 0 { (first, _c1, last, _c2) = b::order(ar, ac, row, col) }
+                        ? first <= last { @ ln:first..last {
+                            n = 4
+                            ? text == "unindent" { n = b::unindent_amount(lines[ln]) }
+                            ? text == "indent" {
+                                h::insert(lines<~, done<~, undone<~, g, 'i', ln, 0, "    ", row, col)
+                            } _? n > 0 {
+                                h::remove(lines<~, done<~, undone<~, g, ln, 0, ln, n, row, col)
+                            }
+                            d = n
+                            ? text == "unindent" { d = 0 - n }
+                            ? ln == row { col = col + d }
+                            ? ar > 0 && ln == ar { ac = ac + d }
+                        } }
+                        ? col < 0 { col = 0 }
+                        ? ac < 0 { ac = 0 }
+                        col = b::snap(lines[row], col)
+                    }
+                    _ { note = "unknown command: {text}" }
+                }
+            }
+            _? k == 0d14 { go = cur % bufs$# + 1 }
+            _? k == 0d15 {
+                (found, path) = prompt("Open (empty: new buffer): ", "")
+                ? found {
+                    // already open? then just switch to it
+                    at = 0
+                    ? path$# > 0 && path == name { at = cur }
+                    ? path$# > 0 && bufs$# >= 1 {
+                        @ i:1..bufs$# {
+                            (_l, _r, _c, _t, _h, _d, _u, _s, other, _k2, _e2) = bufs[i]
+                            ? other == path { at = i }
+                        }
+                    }
+                    ? at > 0 { go = at } _ {
+                        bufs[cur]$~ (lines, row, col, top, hs, done, undone, saved, name, locked, eol)
+                        bufs = bufs$+ blank()
+                        cur = bufs$#
+                        name = path
+                        (lines, eol, locked, note) = load(name)
+                        (row, col, top, hs, done, undone, saved) = (1, 0, 1, 0, [], [], 0)
+                        ar = 0
+                        marking = #0
+                    }
+                }
+            }
+            _? k == 0d23 { go = -1 }
+            _? k == 0d4 {
+                g = g + 1
+                ? ar > 0 { (row, col) = delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col) }
+                _? col < lines[row]$# {
+                    h::remove(lines<~, done<~, undone<~, g, row, col, row, b::next_boundary(lines[row], col), row, col)
+                }
+                _? row < lines$# {
+                    h::remove(lines<~, done<~, undone<~, g, row, col, row + 1, 0, row, col)
+                }
+                ar = 0
+                marking = #0
+            }
+            _? k == 0d127 {
+                g = g + 1
+                ? ar > 0 { (row, col) = delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col) }
+                _? col > 0 {
+                    c = b::prev_boundary(lines[row], col)
+                    h::remove(lines<~, done<~, undone<~, g, row, c, row, col, row, col)
+                    col = c
+                }
+                _? row > 1 {
+                    c = lines[row - 1]$#
+                    h::remove(lines<~, done<~, undone<~, g, row - 1, c, row, 0, row, col)
+                    (row, col) = (row - 1, c)
+                }
+                ar = 0
+                marking = #0
+            }
+            _? k == 0d9 && ar > 0 && ar <> row {
+                // Tab over several lines indents them all
+                g = g + 1
+                (first, _c1, last, _c2) = b::order(ar, ac, row, col)
+                ? first <= last {
+                    @ ln:first..last {
+                        h::insert(lines<~, done<~, undone<~, g, 'i', ln, 0, "    ", row, col)
+                    }
+                }
+                col = col + 4
+                ac = ac + 4
+            }
+            _? k == '\n' || k == 0d9 || !((##!k < 32) || (##!k == 127)) {
+                g = g + 1
+                text = "{k}"
+                kind = 'T'
+                r = row
+                c = col
+                ? ar > 0 { (row, col) = delete_selection(lines<~, done<~, undone<~, g, ar, ac, row, col) }
+                ? k == '\n' {
+                    kind = 'i'
+                    text = "\n" b::indent_of(lines[row], col)
+                }
+                ? k == 0d9 {
+                    kind = 'i'
+                    text = "    "
+                }
+                (row, col) = h::insert(lines<~, done<~, undone<~, g, kind, row, col, text, r, c)
+                ar = 0
+                marking = #0
+            }
+            ? nav && !marking { ar = 0 }
+
+            // closing the buffer, or moving to another one
+            ? go == -1 {
+                ? h::top_group(done) <> saved && !confirmed("Discard the changes of this buffer? (y/n) ") {
+                    note = "not closed"
+                } _? bufs$# == 1 {
+                    (lines, row, col, top, hs, done, undone, saved, name, locked, eol) = blank()
+                    ar = 0
+                    marking = #0
+                } _ {
+                    bufs = bufs$-[cur]
+                    cur = cur - 1
+                    ? cur < 1 { cur = 1 }
+                    slot = bufs[cur]
+                    bufs[cur]$~ blank()
+                    (lines, row, col, top, hs, done, undone, saved, name, locked, eol) = slot
+                    ar = 0
+                    marking = #0
+                    note = name
+                }
+            }
+            ? go >= 1 && go <> cur {
+                slot = (lines, row, col, top, hs, done, undone, saved, name, locked, eol)
+                (lines, row, col, top, hs, done, undone, saved, name, locked, eol) = swap(bufs<~, cur, go, slot)
+                cur = go
+                ar = 0
+                marking = #0
+                note = name
+            }
+        }
+    }
+}

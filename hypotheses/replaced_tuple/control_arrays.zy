@@ -1,0 +1,9 @@
+// Control for BUG-ZYE-011: the same steps as probe.zy with an array of arrays in place of
+// an array of tuples. Both engines copy nothing (copied=0), before the fix and after it.
+big = []
+@ _i:1..1000 { big = big$+ "line" }
+bufs = [big, [""]]
+big = []
+lines = bufs[1]
+bufs[1]$~ [""]
+lines[500]$~ "edited"

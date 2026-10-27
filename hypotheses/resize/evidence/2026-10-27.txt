@@ -1,0 +1,9 @@
+# hypotheses/resize — evidence before any fix
+# date:    2026-10-27
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter b10b819 2026-10-25 (branch v0.0.11), release build
+# command: python3 hypotheses/resize/check.py
+
+resize: zyvm, zytw agree; a program waiting in `<<|` is not told that the window changed size
+  GAP-ZYE-012  HOLDS
+exit status: 1

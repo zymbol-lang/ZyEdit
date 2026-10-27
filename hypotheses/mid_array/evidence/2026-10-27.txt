@@ -1,0 +1,13 @@
+# hypotheses/mid_array — evidence before any fix
+# date:    2026-10-27
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter b10b819 2026-10-25 (branch v0.0.11), release build
+# command: bash hypotheses/mid_array/check.sh
+
+mid_array: one edit in the middle of 10 000 elements, zyvm and zytw
+  remove  zyvm bytes=0  zytw copied=0  costs the array: no
+  replace  zyvm bytes=0  zytw copied=0  costs the array: no
+  insert  zyvm bytes=480088  zytw copied=10001  costs the array: yes
+  remove_range  zyvm bytes=160008  zytw copied=9998  costs the array: yes
+  BUG-ZYE-014  HOLDS
+exit status: 1

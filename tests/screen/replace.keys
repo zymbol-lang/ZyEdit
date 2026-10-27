@@ -1,0 +1,26 @@
+# replace: skip one, replace one, then the rest without asking; then ignore case
+CTRL+G
+c
+a
+s
+e
+ENTER
+SHOW
+CTRL+R
+c
+a
+t
+ENTER
+x
+ENTER
+SHOW
+n
+SHOW
+y
+SHOW
+a
+SHOW
+CTRL+Z
+SHOW
+CTRL+Q
+CTRL+Q

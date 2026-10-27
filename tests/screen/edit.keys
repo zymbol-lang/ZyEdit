@@ -1,0 +1,25 @@
+# type a word, undo it, redo it; delete forward; join lines with backspace
+x
+y
+SPACE
+z
+SHOW
+CTRL+Z
+SHOW
+CTRL+Z
+SHOW
+CTRL+Y
+SHOW
+CTRL+D
+SHOW
+CTRL+E
+CTRL+D
+SHOW
+CTRL+Z
+CTRL+Z
+CTRL+Z
+SHOW
+CTRL+Z
+CTRL+Z
+SHOW
+CTRL+Q

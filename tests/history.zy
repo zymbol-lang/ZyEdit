@@ -1,0 +1,42 @@
+<# ../src/history => h
+<# ../src/buffer => b
+
+show(lines, done, undone, row, col) {
+    >> b::to_text(lines, "\n") "|  undo:" done$# " redo:" undone$# "  @" row ":" col ¶
+}
+
+lines = b::from_text("one\ntwo", "\n")
+done = []
+undone = []
+
+// typing joins into words; a space starts a new edit
+(r, c) = (1, 3)
+g = 0
+@ ch:" four" {
+    g = g + 1
+    (r, c) = h::insert(lines<~, done<~, undone<~, g, 'T', r, c, ch, r, c)
+}
+show(lines, done, undone, r, c)
+(ok, r, c) = h::undo(lines<~, done<~, undone<~)
+show(lines, done, undone, r, c)
+(ok, r, c) = h::undo(lines<~, done<~, undone<~)
+show(lines, done, undone, r, c)
+(ok, r, c) = h::redo(lines<~, done<~, undone<~)
+show(lines, done, undone, r, c)
+
+// a group of two edits (a replacement) is one undo
+h::remove(lines<~, done<~, undone<~, 20, 2, 0, 2, 3, 2, 3)
+(r, c) = h::insert(lines<~, done<~, undone<~, 20, 'i', 2, 0, "TWO\nmore", 2, 3)
+show(lines, done, undone, r, c)
+(ok, r, c) = h::undo(lines<~, done<~, undone<~)
+show(lines, done, undone, r, c)
+(ok, r, c) = h::redo(lines<~, done<~, undone<~)
+show(lines, done, undone, r, c)
+
+// a new edit empties redo; undo with nothing left says so
+(ok, r, c) = h::undo(lines<~, done<~, undone<~)
+(r, c) = h::insert(lines<~, done<~, undone<~, 30, 'i', 1, 0, ">", 1, 0)
+show(lines, done, undone, r, c)
+@ _i:1..6 { (ok, r, c) = h::undo(lines<~, done<~, undone<~) }
+show(lines, done, undone, r, c)
+>> ok " " h::top_group(done) ¶

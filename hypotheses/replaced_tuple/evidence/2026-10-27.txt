@@ -1,0 +1,13 @@
+# hypotheses/replaced_tuple — evidence before any fix
+# date:    2026-10-27
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter b10b819 2026-10-25 (branch v0.0.11), release build
+# command: bash hypotheses/replaced_tuple/check.sh
+
+replaced_tuple: what each engine copies under --count
+  control_arrays.zy  zyvm copied=0  zytw copied=0
+  control_reassign.zy  zyvm copied=0  zytw copied=0
+  probe.zy  zyvm copied=1002  zytw copied=0
+  through_function.zy  zyvm copied=1002  zytw copied=0
+  BUG-ZYE-011  HOLDS
+exit status: 1

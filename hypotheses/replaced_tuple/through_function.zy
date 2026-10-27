@@ -1,0 +1,16 @@
+// BUG-ZYE-011, in the shape ZyEdit has it: the tuple is taken out by a function that
+// replaces its slot, as `swap` does when the editor changes buffer. The VM copies the
+// whole inner array on the first edit (copied=1002), the tree-walker copies nothing.
+blank() { <~ ([""], 0) }
+take(bufs<~, to) {
+    next = bufs[to]
+    bufs[to]$~ blank()
+    <~ next
+}
+big = []
+@ _i:1..1000 { big = big$+ "line" }
+bufs = [(big, 1), blank()]
+big = []
+(lines, _k) = take(bufs<~, 1)
+lines[500]$~ "edited"
+lines[501]$~ "edited"

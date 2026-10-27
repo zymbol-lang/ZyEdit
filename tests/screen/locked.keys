@@ -1,0 +1,20 @@
+# an unreadable file is never overwritten; Save as writes elsewhere
+SHOW
+x
+CTRL+S
+f
+.
+t
+x
+t
+ENTER
+SHOW
+CTRL+T
+o
+.
+t
+x
+t
+ENTER
+SHOW
+CTRL+Q

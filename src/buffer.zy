@@ -1,0 +1,320 @@
+// buffer.zy — the text of ZyEdit: an array of lines, one string per line.
+//
+// No terminal, no files, so it is held with plain goldens in all three engines
+// (README, decision 3). The text is edited IN PLACE: `lines` is a by-reference
+// parameter (`lines<~`) and the functions that move the cursor return (row, col).
+// Passing `lines` in and out by value copies all n lines on every keystroke
+// (copied=n under --count, tests/cost.sh); by reference it copies none.
+//   lines : array of strings, never empty (an empty buffer is [""])
+//   row   : 1-based line of the cursor
+//   col   : 0-based number of Chars to the left of the cursor (0 .. line length), always
+//           on a cluster boundary
+// A Char is a code point, and the language has no grapheme segmentation (GAP-ZYE-007), so a
+// cluster is approximated here: a Char continues the previous one when it takes no column
+// (a combining mark, a joiner) or when the previous Char is a zero-width joiner.
+
+# buffer {
+    <# std/term => t
+
+    #> { eol_of, from_text, to_text, before, after, continues, snap, next_boundary, prev_boundary, cluster_at, view, expand, cell, end_pos, text_range, insert_text, delete_range, order, fold, find_next, matches, indent_of, unindent_amount, clamp, left, right, up, down, home, end }
+
+    // The line ending of a text: "\r\n" when every line ending in it is a CR LF (and there
+    // is at least one), "\n" otherwise. A text with mixed endings is read as "\n", so its
+    // CRs stay inside the lines and it is written back as it was read.
+    eol_of(text) {
+        n = (text $?? "\n")$#
+        ? n > 0 && (text $?? "\r\n")$# == n { <~ "\r\n" }
+        <~ "\n"
+    }
+
+    // "a\nb" -> ["a", "b"]; "a\n" -> ["a", ""]; "" -> [""]. With eol "\r\n" the CR that
+    // ends each line is dropped; a CR at the very end, with no line feed after it, is text.
+    from_text(text, eol) {
+        ? text$# == 0 { <~ [""] }
+        lines = text $/ '\n'
+        ? eol == "\r\n" && lines$# >= 2 {
+            @ i:1..(lines$# - 1) { lines[i]$~ before(lines[i], lines[i]$# - 1) }
+        }
+        <~ lines
+    }
+
+    // The inverse of from_text: lines joined by eol.
+    to_text(lines, eol) {
+        out = lines[1]
+        ? lines$# >= 2 {
+            @ i:2..lines$# { out = out $++ eol lines[i] }
+        }
+        <~ out
+    }
+
+    before(line, col) {
+        ? col == 0 { <~ "" }
+        <~ line$[1..col]
+    }
+
+    after(line, col) {
+        ? col >= line$# { <~ "" }
+        <~ line$[col+1..line$#]
+    }
+
+    // Does the Char at 1-based position i continue the cluster that holds Char i-1?
+    continues(line, i) {
+        ? i < 2 { <~ #0 }
+        ? ##!line[i] < 32 { <~ #0 }          // a tab or a carriage return is a cluster of its own
+        ? ##!line[i - 1] == 8205 { <~ #1 }
+        <~ t::width(line[i]) == 0
+    }
+
+    // The nearest cluster boundary at or to the left of col.
+    snap(line, col) {
+        c = col
+        @ {
+            ? c <= 0 || c >= line$# || !continues(line, c + 1) { @! }
+            c = c - 1
+        }
+        <~ c
+    }
+
+    // The boundary one cluster to the right of col (col itself at the end of the line).
+    next_boundary(line, col) {
+        c = col + 1
+        @ {
+            ? c >= line$# || !continues(line, c + 1) { @! }
+            c = c + 1
+        }
+        <~ c
+    }
+
+    // The boundary one cluster to the left of col (col must be > 0).
+    prev_boundary(line, col) {
+        <~ snap(line, col - 1)
+    }
+
+    // The cluster that starts at col, as a string (" " past the end of the line).
+    cluster_at(line, col) {
+        ? col >= line$# { <~ " " }
+        <~ line$[col + 1..next_boundary(line, col)]
+    }
+
+    // What is drawn of a line when the screen starts hs columns in: (text, x), x being the
+    // 0-based column the text starts at (a wide glyph cut by the edge leaves a gap).
+    view(line, hs) {
+        i = 0
+        acc = 0
+        @ {
+            ? i >= line$# || acc >= hs { @! }
+            i = i + 1
+            acc = acc + t::width(line[i])
+        }
+        ? i >= line$# { <~ ("", acc - hs) }
+        <~ (line$[i + 1..line$#], acc - hs)
+    }
+
+    // The line as it is drawn: a tab becomes spaces up to the next multiple of 4 columns, and
+    // a carriage return (the end of a CRLF line) is not drawn. The text itself is untouched.
+    expand(line) {
+        ? !(line $? '\t') && !(line $? '\r') { <~ line }
+        out = ""
+        x = 0
+        @ ch:line {
+            ? ch == '\t' {
+                pad = "    "$[1:4 - (x % 4)]
+                out = out $++ pad
+                x = x + pad$#
+            }
+            _? ch <> '\r' {
+                out = out $++ ch
+                x = x + t::width(ch)
+            }
+        }
+        <~ out
+    }
+
+    // What the caret covers at col, and the display column it starts at: (text, x).
+    cell(line, col) {
+        x = t::width(expand(before(line, col)))
+        ? col >= line$# { <~ (" ", x) }
+        c = line[col + 1]
+        ? c == '\t' { <~ ("    "$[1:4 - (x % 4)], x) }
+        ? c == '\r' { <~ (" ", x) }
+        <~ (cluster_at(line, col), x)
+    }
+
+    // The position after text that starts at (row, col) has been written.
+    end_pos(row, col, text) {
+        ? text$# == 0 { <~ (row, col) }
+        parts = text $/ '\n'
+        n = parts$#
+        ? n == 1 { <~ (row, col + text$#) }
+        <~ (row + n - 1, parts[n]$#)
+    }
+
+    // The text between two positions, lines joined by a line feed. (r1, c1) <= (r2, c2).
+    text_range(lines, r1, c1, r2, c2) {
+        ? r1 == r2 {
+            ? c2 <= c1 { <~ "" }
+            <~ lines[r1]$[c1 + 1..c2]
+        }
+        out = after(lines[r1], c1)
+        ? r2 - r1 >= 2 {
+            @ i:(r1 + 1)..(r2 - 1) { out = out $++ '\n' lines[i] }
+        }
+        <~ out $++ '\n' before(lines[r2], c2)
+    }
+
+    // Writes text at (row, col) and returns the position after it.
+    insert_text(lines<~, row, col, text) {
+        ? text$# == 0 { <~ (row, col) }
+        parts = text $/ '\n'
+        n = parts$#
+        line = lines[row]
+        tail = after(line, col)
+        ? n == 1 {
+            lines[row]$~ (before(line, col) $++ text tail)
+            <~ (row, col + text$#)
+        }
+        lines[row]$~ (before(line, col) $++ parts[1])
+        ? n >= 3 {
+            @ i:2..(n - 1) { lines = lines$+[row + i - 1] parts[i] }
+        }
+        lines = lines$+[row + n - 1] (parts[n] $++ tail)
+        <~ (row + n - 1, parts[n]$#)
+    }
+
+    // Removes what lies between two positions. (r1, c1) <= (r2, c2).
+    delete_range(lines<~, r1, c1, r2, c2) {
+        ? r1 == r2 {
+            line = lines[r1]
+            lines[r1]$~ (before(line, c1) $++ after(line, c2))
+            <~ #1
+        }
+        joined = before(lines[r1], c1) $++ after(lines[r2], c2)
+        lines[r1]$~ joined
+        lines = lines$-[r1 + 1..r2]
+        <~ #1
+    }
+
+    // Puts two positions in reading order: (r1, c1, r2, c2) with the first not after the second.
+    order(ar, ac, br, bc) {
+        ? ar < br || (ar == br && ac <= bc) { <~ (ar, ac, br, bc) }
+        <~ (br, bc, ar, ac)
+    }
+
+    // ASCII letters in lower case, everything else untouched, so that positions stay the
+    // same. The language has no case conversion (GAP-ZYE-010), and this is the workaround.
+    fold(text) {
+        ? !has_upper(text) { <~ text }
+        out = ""
+        @ ch:text {
+            n = ##!ch
+            ? n >= 65 && n <= 90 { out = out $++ ##'(n + 32) } _ { out = out $++ ch }
+        }
+        <~ out
+    }
+
+    has_upper(text) {
+        @ ch:text {
+            n = ##!ch
+            ? n >= 65 && n <= 90 { <~ #1 }
+        }
+        <~ #0
+    }
+
+    // The first match of pat at or after (row, col), wrapping round to the start of the
+    // text: (found, row, col). A match that starts at the cursor counts. With nocase, ASCII
+    // letters match whatever their case.
+    find_next(lines, row, col, pat, nocase) {
+        n = lines$#
+        ? pat$# == 0 { <~ (#0, row, col) }
+        needle = pat
+        ? nocase { needle = fold(pat) }
+        @ k:0..n {
+            r = (row - 1 + k) % n + 1
+            from = 0
+            ? k == 0 { from = col }
+            hay = lines[r]
+            ? nocase { hay = fold(hay) }
+            hits = hay $?? needle
+            @ h:hits {
+                ? h - 1 >= from && (k < n || h - 1 < col) { <~ (#1, r, h - 1) }
+            }
+        }
+        <~ (#0, row, col)
+    }
+
+    // Start columns of the non-overlapping matches of pat in line, left to right.
+    matches(line, pat, nocase) {
+        out = []
+        ? pat$# == 0 { <~ out }
+        hay = line
+        needle = pat
+        ? nocase {
+            hay = fold(line)
+            needle = fold(pat)
+        }
+        free = 0
+        @ h:(hay $?? needle) {
+            ? h - 1 >= free {
+                out = out$+ (h - 1)
+                free = h - 1 + pat$#
+            }
+        }
+        <~ out
+    }
+
+    // The leading spaces and tabs of a line, as far as col: what Enter repeats.
+    indent_of(line, col) {
+        i = 0
+        @ {
+            ? i >= col || i >= line$# { @! }
+            c = line[i + 1]
+            ? c <> ' ' && c <> '\t' { @! }
+            i = i + 1
+        }
+        <~ before(line, i)
+    }
+
+    // How many Chars one step of un-indenting takes off the start of a line: a tab, or up
+    // to four spaces.
+    unindent_amount(line) {
+        ? line$# > 0 && line[1] == '\t' { <~ 1 }
+        n = 0
+        @ {
+            ? n >= 4 || n >= line$# || line[n + 1] <> ' ' { @! }
+            n = n + 1
+        }
+        <~ n
+    }
+
+    // Cursor movement only reads the text.
+    left(lines, row, col) {
+        ? col > 0 { <~ (row, prev_boundary(lines[row], col)) }
+        ? row > 1 { <~ (row - 1, lines[row - 1]$#) }
+        <~ (row, col)
+    }
+
+    right(lines, row, col) {
+        ? col < lines[row]$# { <~ (row, next_boundary(lines[row], col)) }
+        ? row < lines$# { <~ (row + 1, 0) }
+        <~ (row, col)
+    }
+
+    clamp(lines, row, col) {
+        n = lines[row]$#
+        ? col > n { <~ (row, n) }
+        <~ (row, snap(lines[row], col))
+    }
+
+    up(lines, row, col) {
+        ? row == 1 { <~ (row, col) }
+        <~ clamp(lines, row - 1, col)
+    }
+
+    down(lines, row, col) {
+        ? row == lines$# { <~ (row, col) }
+        <~ clamp(lines, row + 1, col)
+    }
+
+    home(lines, row, col) { <~ (row, 0) }
+    end(lines, row, col) { <~ (row, lines[row]$#) }
+}

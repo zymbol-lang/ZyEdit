@@ -1,0 +1,8 @@
+// BUG-ZYE-013: the escape `\r` inside a string. The Rust engines give a carriage return
+// (13); the browser engine gives the letter r (114). The same escape in a Char literal
+// gives 13 in all three.
+s = "a\rb"
+>> s$# " " ##!s[2] ¶
+c = '\r'
+>> ##!c ¶
+>> ("x\r" $? '\r') ¶

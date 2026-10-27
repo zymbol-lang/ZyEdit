@@ -20,15 +20,21 @@
 >
 > Se separan para que nadie lea un `DIS` como algo que la aplicación encontró escribiéndose.
 >
-> **Estado del ciclo.** Abierto el 2026-10-20, antes de la primera línea del editor. Hay cinco
-> hallazgos de diseño, **los cinco abiertos y sin decidir**. DIS-ZYE-001 bloquea la etapa 1
-> del `README.md` (Supr, Inicio/Fin, RePág/AvPág) y DIS-ZYE-002 la selección de la etapa 2.
+> **Decisión (2026-10-26):** los hallazgos se atienden en la **v0.0.12**; ZyEdit sigue
+> escribiéndose con apaños declarados.
 >
-> **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, un `check.py`
-> que da un veredicto por hallazgo (`HOLDS` o `FIXED`) y la respuesta guardada en
+> **Estado del ciclo (2026-10-27).** Abierto el 2026-10-20, antes de la primera línea del
+> editor, con cinco hallazgos de diseño. Escribir las etapas 1 y 2 (2026-10-26 y 27) trajo
+> nueve más. Son **catorce, todos abiertos y para la v0.0.12**; el 008 está retirado como
+> incapacidad y sigue abierto como error sin guía. Ninguno bloquea ya una etapa: donde el
+> lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
+> 001 y 002, caret dibujado para 004, sondeo para 012…).
+>
+> **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
+> comprobación que da un veredicto por hallazgo (`HOLDS` o `FIXED`) y la respuesta guardada en
 > `evidence/<fecha>.txt` con el binario y el commit. Después del arreglo, la misma comprobación
-> confirma que está corregido. Luego la pregunta pasa a `zyquality/tui/` o a ZyDDT, y solo
-> entonces se cierra el hallazgo. `hypotheses/README.md` describe ese ciclo.
+> confirma que está corregido. Luego la pregunta pasa a `zyquality/tui/`, a `zyquality/cost/` o
+> a ZyDDT, y solo entonces se cierra el hallazgo. `hypotheses/README.md` describe ese ciclo.
 
 ---
 
@@ -36,11 +42,20 @@
 
 | ID | Tipo | Módulo | Contexto | Estado |
 |----|------|--------|----------|--------|
-| [DIS-ZYE-001](#dis-zye-001) | DIS | entrada de teclado (los 2 motores con terminal) | Inicio, Fin, RePág, AvPág, Supr, F1–F12 y Shift+Tab llegan **todas como `0d0`**, el mismo valor con el que `<<\|?` dice «no hay tecla» | **abierto** · sin decidir |
-| [DIS-ZYE-002](#dis-zye-002) | DIS | entrada de teclado | un modificador sobre una tecla que no es letra **se pierde**: Shift+→ y Ctrl+→ llegan como → | **abierto** · sin decidir |
-| [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **abierto** · sin decidir |
-| [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca | **abierto** · sin decidir |
-| [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · sin decidir |
+| [DIS-ZYE-001](#dis-zye-001) | DIS | entrada de teclado (los 2 motores con terminal) | Inicio, Fin, RePág, AvPág, Supr, F1–F12 y Shift+Tab llegan **todas como `0d0`**, el mismo valor con el que `<<\|?` dice «no hay tecla» | **abierto** · para v0.0.12 |
+| [DIS-ZYE-002](#dis-zye-002) | DIS | entrada de teclado | un modificador sobre una tecla que no es letra **se pierde**: Shift+→ y Ctrl+→ llegan como → | **abierto** · para v0.0.12 |
+| [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **abierto** · para v0.0.12 |
+| [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca | **abierto** · para v0.0.12 |
+| [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · para v0.0.12 |
+| [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes | **abierto** · para v0.0.12 |
+| [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0` | **abierto** · para v0.0.12 |
+| [GAP-ZYE-008](#gap-zye-008) | GAP | texto → número | ~~no hay forma de leer `"42"` como Int~~ — `#\|texto\|` lo hace; lo que falla es que `###"42"` y `##."42"` no dicen que existe | **retirado como incapacidad** · el error sin guía sigue abierto para v0.0.12 |
+| [BUG-ZYE-009](#bug-zye-009) | BUG | parser | ~~`lines$-[r1 + 1..r2]` y~~ `@ i:r1 + 1..r2 - 1` falla en los dos motores de Rust con *«ranges can only be used in for-each loops»*: el `..` toma por la izquierda sólo el último operando; zyjs lo acepta | **abierto** · para v0.0.12 |
+| [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII | **abierto** · para v0.0.12 |
+| [BUG-ZYE-011](#bug-zye-011) | BUG | `zymbol-vm` | tras `(a, k) = v[1]` y `v[1]$~ otra`, la VM copia entero el array `a` en la primera edición; el tree-walker no copia nada | **abierto** · para v0.0.12 |
+| [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
+| [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **abierto** · para v0.0.12 |
+| [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
 
 ---
 
@@ -52,12 +67,19 @@ Las comprobaciones viven en [`hypotheses/`](hypotheses/), una carpeta por pregun
 |---|---|---|
 | [`hypotheses/keys/`](hypotheses/keys/) | 001, 002, 003 | qué devuelve `<<\|` para cada tecla que necesita un editor con atajos de GUI |
 | [`hypotheses/cursor/`](hypotheses/cursor/) | 004 | si dentro de `>>\|` se llega a mostrar el cursor del terminal |
+| [`hypotheses/replaced_tuple/`](hypotheses/replaced_tuple/) | 011 | cuánto copia cada motor al editar lo que había en una tupla cuyo hueco se reemplazó |
+| [`hypotheses/resize/`](hypotheses/resize/) | 012 | si un programa que espera en `<<\|` se entera de que la ventana cambió de tamaño |
+| [`hypotheses/string_cr/`](hypotheses/string_cr/) | 013 | qué hace cada motor con `"\r"` dentro de una cadena |
+| [`hypotheses/mid_array/`](hypotheses/mid_array/) | 014 | cuánto cuesta una edición en medio de un array de 10 000 elementos |
 
-Cada `check.py` arranca el programa por un **pty de verdad** en los dos motores, les manda los
-bytes que manda xterm (que son los que manda casi cualquier emulador) y da un veredicto por
-hallazgo. Falla si los motores no coinciden antes de dar ninguno. No se puede hacer con
-`zymbol run --keys`: el guion entrega al programa teclas ya decodificadas, y lo que se pregunta
-es justamente la decodificación. Que estas comprobaciones sean Python es DIS-ZYE-005.
+Las tres de terminal (`keys`, `cursor`, `resize`) arrancan el programa por un **pty de verdad**
+en los dos motores, les mandan los bytes que manda xterm (que son los que manda casi cualquier
+emulador) y dan un veredicto por hallazgo. Fallan si los motores no coinciden antes de dar
+ninguno. No se pueden hacer con `zymbol run --keys`: el guion entrega al programa teclas ya
+decodificadas, y lo que se pregunta es justamente la decodificación. Que sean Python es
+DIS-ZYE-005. Las dos de coste (`replaced_tuple`, `mid_array`) miden con `--count`, que es exacto,
+y llevan programas de control que deben seguir costando lo mismo. `string_cr` compara la salida
+de los tres motores.
 
 ```bash
 bash hypotheses/run.sh                      # todas; sale con 1 mientras alguna siga en pie
@@ -123,6 +145,12 @@ después de las flechas.
 `TAB`, `BACKSPACE`, `SPACE` y `CTRL+letra`. Un arreglo que solo tocase `<<|` dejaría las teclas
 nuevas sin forma de probarse en la puerta. Los dos tienen que cambiar juntos.
 
+**Lo que ZyEdit hace mientras tanto** (2026-10-26), y cuenta como rojo (decálogo, punto 4):
+teclas Ctrl propias. Ctrl+D borra hacia delante, Ctrl+U y Ctrl+E van al principio y al final
+de la línea, y Ctrl+P y Ctrl+L suben y bajan una pantalla. Son cinco letras que un editor de GUI
+usa para otra cosa, y por eso lo que se usa poco vive detrás de Ctrl+G (`README.md`, «The keys
+that stand in until v0.0.12»).
+
 **Lo esperable** sería que cada una de estas teclas llegase con un valor propio, distinto de
 `0d0`. Cómo se escribe ese valor lo decide el autor. Las flechas ya llegan como glifos
 (`↑ ↓ ← →`), y ese es el precedente más cercano dentro del propio lenguaje.
@@ -143,7 +171,11 @@ pide una cosa y obtiene otra, sin aviso. Es la misma clase que BUG-ZYB-006: la t
 disfrazada de otra.
 
 La selección es el corazón de la etapa 2 (copiar, cortar, pegar), así que este hallazgo la
-bloquea entera mientras siga abierto.
+habría bloqueado entera.
+
+**Lo que ZyEdit hace mientras tanto** (2026-10-27, rojo): Ctrl+B empieza y termina una
+selección, y mientras está activa las flechas la extienden, en lugar de Shift+flecha. Mover el
+cursor por palabras y buscar hacia atrás no tienen tecla, y esperan a Ctrl+flecha.
 
 **Lo esperable** sería poder preguntar por el modificador. Un carácter por tecla no basta para
 eso: las flechas son cuatro, los modificadores tres, y sus combinaciones no caben en una tabla
@@ -205,6 +237,10 @@ Que el caret dibujado se pueda escribir hace que este hallazgo no bloquee la eta
 queda como `DIS` y no como incapacidad. Escribir a mano la secuencia de escape (`ESC [ ? 25 h`)
 con `>>` sería salir del lenguaje y contaría como rojo (decálogo, punto 4); no se hace.
 
+**Lo que ZyEdit hace mientras tanto** (2026-10-26): dibujar el caret. `render` pinta con colores
+invertidos el clúster que hay bajo el cursor, o un espacio al final de la línea, y
+`tests/pty/check.py` comprueba en un terminal de verdad que se dibuja así.
+
 **Lo esperable** sería poder decir, dentro de `>>|`, «muestra el cursor aquí».
 
 ---
@@ -259,6 +295,296 @@ en absoluto lo decide el autor, y un símbolo nuevo pasaría primero por
 
 **Su «después»** es uno de los dos `check.py` reescrito en Zymbol, con el mismo veredicto que el
 de Python.
+
+---
+
+## GAP-ZYE-006
+
+**Un fichero que no es UTF-8 válido no se puede abrir, ni leer como bytes.**
+
+Salió al escribir la etapa 1 (2026-10-26), con `tests/roundtrip.zy` (abre y guarda sin tocar) sobre
+cinco ficheros. Cuatro vuelven byte a byte iguales en los dos motores: CRLF, sin salto final,
+con marca BOM y con tabuladores y líneas vacías al final. El quinto, `bad \xff\xfe utf8\n`:
+
+```
+txt = io::read("bad.txt")      // ##IO(stream did not contain valid UTF-8)
+```
+
+Es un error suave, no corrompe nada, y eso está bien: **fallar cerrado es lo correcto**. Pero un
+editor que sólo abre texto UTF-8 válido no puede abrir un Latin-1 antiguo, un binario ni un log
+con una línea rota, y la promesa de ZyEdit era *devolver los bytes que recibió*. No existe en
+`std/io` una lectura de bytes (ni una lectura con sustitución, que perdería los originales).
+
+**Lo que ZyEdit hace mientras tanto** (2026-10-27): no abre ese fichero como un buffer vacío, que
+Ctrl+S habría escrito encima del original; lo marca como no guardable, lo dice en la barra y
+ofrece guardar en otro nombre (`tests/screen/locked.keys`; `tests/run.sh` comprueba además que el
+original queda intacto). Se puede escribir en ese buffer vacío y guardarlo con otro nombre, pero
+el contenido del fichero no se ve.
+
+**Lo esperable:** una forma de leer y escribir bytes sin interpretarlos, y que lo que se lea con
+ella sobreviva al viaje de vuelta. Si es una función de `std/io`, una variante de `read` o nada
+(ZyEdit rechazaría esos ficheros con un mensaje) lo decide el autor.
+
+---
+
+## GAP-ZYE-007
+
+**El lenguaje no segmenta en clústeres de grafemas, y un editor lo necesita en cada tecla.**
+
+Salió al escribir el movimiento del cursor (2026-10-26). `"é"` escrito como `e` + U+0301 tiene
+`$#` = 2, ancho 1, y el caret debe saltarlo de una vez; igual la familia 👨‍👩‍👧 (5 puntos de código,
+ancho 2). `Char` es un punto de código a propósito (`##!` da ese número), así que nada del
+lenguaje dice dónde acaba un clúster.
+
+**El apaño, que cuenta como rojo** (decálogo, punto 4): `buffer.zy` (`continues`) decide que un
+`Char` continúa al anterior si `t::width(c) == 0` (marca combinante o unión) o si el anterior es
+U+200D. Con él, `tests/buffer.zy` mueve y borra por clústeres y los tres motores
+coinciden en esos casos. Pero es una aproximación y falla donde el ancho no basta: pares de indicadores regionales (🇪🇸 son
+dos puntos de código de ancho 2 cada uno), secuencias de jamo de hangul y modificadores de
+tono de piel (que tienen ancho 2). Un clúster correcto es la regla UAX #29 y no está en el
+lenguaje.
+
+**Lo esperable:** una forma de recorrer o medir una cadena por clústeres (un operador, una
+función de `std/term` o una variante de `$#` y de `$[..]`). Lo decide el autor; el módulo
+`std/term` ya mide en el mismo sentido (columnas), así que sería su sitio natural.
+
+**Su «después»:** `continues` desaparece de `buffer.zy`, y los mismos casos de `tests/buffer.zy`
+más uno de banderas y otro de tono de piel dan el mismo golden.
+
+---
+
+## GAP-ZYE-008
+
+> **CORREGIDO el mismo día (2026-10-26), y el enunciado era falso.** El lenguaje **sí** convierte
+> un texto en número: `#|texto|` devuelve el Int, el Float o el texto intacto si no lo es.
+> Lo ejecuta `corpus/casts/cifra_de_cualquier_escritura.zy`. Lo señaló el autor al preguntar si
+> otro proyecto no lo había resuelto ya.
+>
+> ```zymbol
+> #|"42"| → 42     #|"4.5"| → 4.5     #|"1x"| → "1x"     #|"-3"| → -3
+> ```
+>
+> Es otro caso de lo que anota `GAP-ZYB-012`: se probó el operador contiguo al que respondía la
+> pregunta. Aquí `###` y `##.`, que son *casts* de **números**, en vez de `#|…|`, la lectura.
+> El hallazgo se queda, y no como una nota al pie, porque **que quien lo probó llegara a esa
+> conclusión es evidencia de que la forma no se encuentra**.
+
+**Lo que decía:** que no hay manera de convertir un texto en un número.
+
+Salió con «Ir a línea» (Ctrl+G, 2026-10-26): el número llega tecleado, como texto. Se probó lo que
+sugiere la forma de los casts hermanos:
+
+```
+###"42"      // Runtime error: ### requires a numeric value, got String
+##."42"      // Runtime error: ##. requires a numeric value, got String
+"12" + 1     // + is arithmetic only — use juxtaposition to concatenate strings
+```
+
+Con eso se escribió `to_number` sumando los dígitos a mano (`##!ch - 48`), un apaño rojo.
+
+**Lo que pasa de verdad:** la conversión existe, y `to_number` es hoy una línea: `n = #|text|` y
+un `? (n#?)[1] <> "###"` para aceptar sólo enteros. El apaño desapareció.
+
+**Lo que sigue abierto**, y es de descubribilidad: los tres errores de arriba dicen *qué* falló y
+ninguno dice *qué escribir*. Un cast con tres formas hermanas (`###`, `##.`, `##!`) y una cuarta
+con otra sintaxis (`#|…|`) es un sitio donde buscar y no encontrar es lo esperable. Lo esperable,
+de menos a más, a elegir por el autor:
+1. **Un error que diga cómo se escribe**, como el `help:` de rustc o de clippy. Cuando `###` o
+   `##.` reciben un String que no es un número: `= help: to read a text as a number, write
+   #|texto|`. El mismo `help` en `"12" + 1`. No cambia el lenguaje.
+2. **Un aviso estático** en `zymbol check` cuando el operando es un String conocido (un
+   literal o una variable inferida), antes de ejecutar, con la misma ayuda.
+3. **Reevaluar la forma**: que `###"42"` convierta, y `#|…|` quede como la variante segura que
+   no falla. Es un cambio de lenguaje; se anota sólo como alternativa.
+
+**Su «después»:** la sonda de arriba da un error con la línea de ayuda, y un caso en `zyquality/`
+(o una celda de ZyDDT sobre mensajes) la sujeta.
+
+---
+
+## BUG-ZYE-009
+
+> **CORREGIDO EN PARTE el 2026-10-27, al volver a ejecutarlo.** La primera línea del enunciado
+> era falsa: `lines$-[r1 + 1..r2]` se parsea y da lo esperado en los tres motores, y es la forma
+> que usa `buffer.zy` (`delete_range`) desde el principio. Lo que se sostiene es el bucle, y con
+> un dato que entonces no se miró: zyjs **acepta** `@ i:r1 + 1..r2 - 1` y cuenta `2 3`, de modo
+> que los tres motores no coinciden en qué programa es válido. La puerta no lo ve porque ningún
+> caso del corpus escribe esa forma.
+>
+> ```zymbol
+> r1 = 1
+> r2 = 4
+> @ i:r1 + 1..r2 - 1 { >> i " " }   // zyvm, zytw: error: ranges can only be used in for-each loops
+> >> ¶                             // zyjs: 2 3
+> ```
+
+**Lo que decía:** que un rango con aritmética en el extremo izquierdo no se parsea, ni en un
+`$-[…]` ni en un bucle:
+
+```
+lines = lines$-[r1 + 1..r2]        // decía: ranges can only be used in for-each loops
+@ i:r1 + 1..r2 - 1 { }             // idem
+@ i:(r1 + 1)..(r2 - 1) { }         // bien
+```
+
+**Lo que pasa de verdad:** sólo falla el bucle, y sólo en los dos motores de Rust. Allí
+`r1 + 1..r2 - 1` se lee como `r1 + (1..r2) - 1`, y el mensaje, que habla de bucles, se da
+precisamente dentro de uno, lo que lo hace más difícil de entender. Con paréntesis funciona en
+los tres.
+
+**Su «después»:** la línea sin paréntesis compila en los dos motores de Rust, como ya hace en
+zyjs, o los tres la rechazan con un mensaje que diga que hay que parentizar los extremos. Lo
+decide el autor; las dos salidas cierran la divergencia.
+
+---
+
+## GAP-ZYE-010
+
+**No hay conversión de mayúsculas a minúsculas, y «buscar sin distinguir mayúsculas» la necesita.**
+
+Salió al escribir el comando `case` de la búsqueda (2026-10-27). Se buscó en `GUIDE.md`,
+`REFERENCE.md`, `SYMBOLS.md`, la tabla de `std/` (`math`, `random`, `json`, `io`, `net`, `db`,
+`term`, `time`) y el corpus, y no apareció ninguna forma de pasar `"CAT"` a `"cat"`. **Si existe y
+no se encontró, este hallazgo se corrige como se corrigió el 008**: la búsqueda fue esa, y la
+descubribilidad sería lo que queda.
+
+**El apaño** (rojo): `fold` en `buffer.zy` recorre el texto y suma 32 a los códigos 65–90 con
+`##'(n + 32)`. Sólo ASCII: `À` no pasa a `à`, y el plegado de mayúsculas de Unicode no es una
+resta (`ß`, `İ`, la sigma final). Conserva la longitud, lo que permite usar las mismas posiciones
+en el texto original.
+
+**Lo esperable:** una función de `std/` o un operador que convierta caso, con la regla de Unicode,
+y una versión que pliegue para comparar. Lo decide el autor.
+
+---
+
+## BUG-ZYE-011
+
+**La VM mantiene compartido el array de una tupla cuyo hueco se ha reemplazado.**
+
+Salió al medir el coste de cambiar de buffer (`--count`, 2026-10-27): con dos ficheros, la primera
+edición del buffer activo copia sus n líneas (`copied=5002` con 5 000), con uno no copia nada, y
+en el tree-walker tampoco. El programa mínimo está en
+[`hypotheses/replaced_tuple/`](hypotheses/replaced_tuple/):
+
+```
+bufs = [(big, 1), ([""], 0)]
+(lines, k) = bufs[1]
+bufs[1]$~ ([""], 0)            // la tupla vieja ya no está en bufs
+lines[500]$~ "edited"          // VM: copia las 1 000 líneas · tree-walker: ninguna
+```
+
+Con un array de arrays en vez de tuplas, los dos motores copian 0 (`control_arrays.zy`), y
+reasignar `bufs` entero tampoco copia (`control_reassign.zy`): lo que retiene la referencia es
+el hueco reemplazado con `$~` cuando contenía una tupla. `through_function.zy` es el mismo fallo
+con la forma que tiene en el editor, el cambio de buffer a través de una función. No es una divergencia de salida (el gate no la ve) sino de coste: la misma que
+`HLZ-012` y `HLZ-014` fueron en el tree-walker.
+
+**Efecto en ZyEdit:** una copia de n punteros una vez por sesión, no por tecla. Se acepta; no se
+rodea con arrays paralelos porque taparía la prueba.
+
+**Su «después»:** `hypotheses/replaced_tuple/check.sh` da `FIXED` (`probe.zy` y
+`through_function.zy` en 0, con los dos controles en 0), y un caso de `zyquality/cost/` lo sujeta.
+
+---
+
+## GAP-ZYE-012
+
+**Un cambio de tamaño de la ventana no llega al programa que espera una tecla.**
+
+Era la hipótesis «Resizing» del README, sin comprobar desde el 2026-10-20. Se comprobó el
+2026-10-27 con un pty de verdad (`tests/pty/check.py`, `hypotheses/resize/`). `>>?` contesta el
+tamaño nuevo en cuanto se le pregunta, en los dos motores, así que **el dato existe**. Lo que
+falta es enterarse: `<<|` sigue bloqueado y nada más lo despierta, de modo que el editor deja la
+pantalla dibujada para el tamaño viejo hasta que se pulse una tecla.
+
+**El apaño** (rojo): `wait_key` en `zyedit.zy` no usa `<<|`; sondea con `<<|?` cada 40 ms
+(`@~ 40`), compara `>>?` con el tamaño anterior y, si cambió, vuelve para redibujar. Funciona
+(`tests/pty/check.py` lo comprueba en ambos motores), pero cuesta una espera activa que `<<|` no
+tiene, y un guion de `--keys` agotado ya no falla con «ran out» sino que sondea para siempre,
+por lo que `tests/run.sh` corre con `--timeout`.
+
+**Lo esperable:** que `<<|` pueda devolver «la ventana cambió» (un valor propio, no `'\0'`, que
+ya significa «sin tecla»), o que haya una forma de preguntar si cambió. Lo decide el autor.
+
+**Su «después»:** `hypotheses/resize/check.py` da `FIXED`, y `wait_key` vuelve a ser `<<| k`.
+
+---
+
+## BUG-ZYE-013
+
+**zyjs lee `"\r"` dentro de una cadena como la letra `r`.**
+
+Salió al pasar los módulos puros por los tres motores, como pide la decisión 3 del README
+(2026-10-27). `history.zy` coincide en los tres; `buffer.zy` diverge sólo en las dos líneas que
+dibujan un `\r`. El programa mínimo está en [`hypotheses/string_cr/`](hypotheses/string_cr/):
+
+```zymbol
+s = "a\rb"
+>> s$# " " ##!s[2] ¶      // zyvm, zytw: 3 13    zyjs: 3 114
+c = '\r'
+>> ##!c ¶                 // los tres: 13
+>> ("x\r" $? '\r') ¶      // zyvm, zytw: #1      zyjs: #0
+```
+
+La causa está en el lexer de zyjs (`web/src/zymbol/zymbol.js`, la lectura de cadenas): su tabla
+de escapes tiene `\n` y `\t`, y cualquier otro carácter detrás de la barra queda tal cual, así
+que `\r` da `r`. La de los literales de carácter, unas líneas más abajo, sí tiene `\r` y `\0`.
+El lexer de Rust tiene `\r` en los dos. Ningún `.zy` del corpus escribe `\r` dentro de una
+cadena, y por eso la puerta no lo ve.
+
+Al lado, sin registrar: en los motores de Rust una cadena acepta un escape que no conoce y lo
+deja como la letra (`"\0"` da `0`), mientras que un literal de carácter lo rechaza con *invalid
+escape sequence*. No es una divergencia, pero sí una asimetría entre los dos literales.
+
+**Lo que hace ZyEdit:** nada en el editor, que no corre en el navegador. `tests/run.sh` pasa
+`buffer.zy` por zyjs y compara con `tests/buffer.zyjs.known`, la salida de hoy: `KNOWN`
+mientras sea esa, y un fallo en cuanto coincida con el golden, para que alguien cierre el
+hallazgo.
+
+**Su «después»:** `hypotheses/string_cr/check.sh` da `FIXED`, `buffer.zyjs.known` desaparece y
+un caso de `zyquality/corpus/` con `\r` dentro de una cadena lo sujeta.
+
+---
+
+## BUG-ZYE-014
+
+**Insertar en una posición y quitar un rango cuestan el array entero, aunque tenga un solo
+dueño.**
+
+Salió al convertir `tests/cost.sh` en un veredicto y medir también el tree-walker
+(2026-10-27). Un carácter tecleado en medio de un buffer de 10 000 líneas cuesta lo mismo que en
+uno de 100, en los dos motores; un Enter no. El programa mínimo está en
+[`hypotheses/mid_array/`](hypotheses/mid_array/): edita una vez y dos veces en medio de un array
+de 10 000 cadenas, y la diferencia es lo que cuesta una edición.
+
+| edición | forma | zyvm, bytes | zytw, valores copiados |
+|---|---|---|---|
+| quitar uno | `lines$-[50]` | 0 | 0 |
+| reemplazar uno | `lines[50]$~ "Z"` | 0 | 0 |
+| insertar uno | `lines$+[50] "Z"` | 480 088 | 10 001 |
+| quitar un rango | `lines$-[50..51]` | 160 008 | 9 998 |
+
+Las cuatro están escritas en la forma descartada, la que modifica en vez de construir
+(`zymbol-design/COLLECTIONS.md`), y el array no tiene otro dueño. Aun así insertar y quitar un
+rango cuestan n. El tree-walker copia los n valores. La VM, cuyo `copied` se queda en 0, reserva
+del orden de 48 bytes por elemento al insertar y 16 al quitar el rango, en **cada** edición y no
+una vez amortizada: con 1, 2, 4 y 8 inserciones crece en línea recta. La forma con el resultado
+usado (`lines = lines$+[50] "Z"`) cuesta lo mismo, y un rango de un solo elemento
+(`lines$-[50..50]`) también.
+
+Mover n huecos es lo que cuesta insertar en medio de un array en cualquier lenguaje (el
+`list.insert` de Python también es O(n)). Lo que no es inevitable es reservar un array nuevo en
+cada inserción, como hace la VM, ni copiar los n valores, como hace el tree-walker.
+
+**Efecto en ZyEdit:** cada Enter y cada pegado de varias líneas inserta líneas con `$+[…]`, y
+cada unión de dos líneas (Retroceso al principio de una línea, Ctrl+D al final) las quita con
+`$-[r1 + 1..r2]`, un rango aunque sea de una. Todas cuestan el buffer entero. `tests/cost.sh` lo
+da como `KNOWN` en los dos motores. No se rodea: partir el buffer en bloques para esquivarlo
+mediría el apaño y no el editor, como dice la decisión 1.
+
+**Su «después»:** `hypotheses/mid_array/check.sh` da `FIXED`, `tests/cost.sh` falla con *«close
+BUG-ZYE-014»* hasta que se cierre la ficha, y un caso de `zyquality/cost/` lo sujeta.
 
 ---
 

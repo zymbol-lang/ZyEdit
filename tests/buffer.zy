@@ -1,0 +1,88 @@
+<# ../src/buffer => b
+
+show(lines, row, col) {
+    >> lines " @" row ":" col ¶
+}
+
+// insert_text: one line, several lines, at the edges
+l = b::from_text("ab\ncd", "\n")
+(r, c) = b::insert_text(l<~, 1, 1, "X")
+show(l, r, c)
+(r, c) = b::insert_text(l<~, 1, 2, "1\n2\n3")
+show(l, r, c)
+(r, c) = b::insert_text(l<~, 1, 0, "\n")
+show(l, r, c)
+(r, c) = b::insert_text(l<~, 5, 2, "!\n")
+show(l, r, c)
+>> b::to_text(l, "\n") "|" ¶
+
+// text_range and delete_range, inside a line and across lines
+l = b::from_text("hello\nbig\nworld", "\n")
+>> b::text_range(l, 1, 1, 1, 4) "|" b::text_range(l, 1, 3, 3, 2) "|" b::text_range(l, 2, 1, 2, 1) "|" ¶
+b::delete_range(l<~, 1, 1, 1, 3)
+show(l, 1, 0)
+b::delete_range(l<~, 1, 2, 3, 2)
+show(l, 1, 0)
+>> b::end_pos(2, 5, "ab") " " b::end_pos(2, 5, "ab\ncde") " " b::end_pos(2, 5, "") ¶
+
+// order
+>> b::order(2, 1, 1, 5) " " b::order(1, 5, 1, 5) " " b::order(1, 2, 1, 5) ¶
+
+// find_next: from the cursor, wrapping, and matches that do not overlap
+l = b::from_text("one two\ntwo one\nthree", "\n")
+>> b::find_next(l, 1, 0, "two", #0) " " b::find_next(l, 1, 5, "two", #0) " " b::find_next(l, 2, 4, "two", #0) " "
+>> b::find_next(l, 3, 0, "one", #0) " " b::find_next(l, 1, 0, "zzz", #0) ¶
+>> b::matches("aaaa", "aa", #0) " " b::matches("a-a-a", "a", #0) " " b::matches("abc", "", #0) ¶
+
+// cursor moves and the cluster rule
+(r, c) = (1, 0)
+(r, c) = b::right(l, r, c)
+(r, c) = b::end(l, r, c)
+(r, c) = b::right(l, r, c)
+show(l, r, c)
+(r, c) = b::left(l, r, c)
+(r, c) = b::up(l, r, c)
+(r, c) = b::down(l, r, c)
+show(l, r, c)
+>> b::to_text(l, "\n") ¶
+>> b::from_text("", "\n") " " b::from_text("a\n", "\n") ¶
+
+// clusters: a combining mark and a zero-width-joined family move as one
+text = "aéb👨‍👩‍👧z"
+l = b::from_text(text, "\n")
+(r, c) = (1, 0)
+@ _i:1..5 {
+    (r, c) = b::right(l, r, c)
+    >> c " "
+}
+>> ¶
+@ _i:1..5 {
+    (r, c) = b::left(l, r, c)
+    >> c " "
+}
+>> ¶
+c = b::prev_boundary(l[1], 3)
+b::delete_range(l<~, 1, c, 1, 3)
+show(l, 1, c)
+
+// drawing: tabs to multiples of 4, a CRLF's \r not drawn, the caret on each
+l = b::from_text("a\tbc\td\r", "\n")
+>> b::expand(l[1]) "|" b::expand("ab") "|" b::expand("\t") "|" ¶
+>> b::cell(l[1], 0) " " b::cell(l[1], 1) " " b::cell(l[1], 2) " " b::cell(l[1], 4) " " b::cell(l[1], 5) " " b::cell(l[1], 6) ¶
+
+// case: only with nocase, ASCII only
+l = b::from_text("The CAT sat\nthe cat", "\n")
+>> b::find_next(l, 1, 0, "cat", #0) " " b::find_next(l, 1, 0, "cat", #1) " " b::find_next(l, 1, 0, "CAT", #1) ¶
+>> b::matches("aAaA", "aa", #1) " " b::matches("aAaA", "aa", #0) " " b::fold("ÀB1") ¶
+
+// auto-indent and un-indent amounts
+>> "[" b::indent_of("    x", 9) "][" b::indent_of("\t  x", 2) "][" b::indent_of("  x", 1) "][" b::indent_of("x", 1) "]" ¶
+>> b::unindent_amount("      x") " " b::unindent_amount("  x") " " b::unindent_amount("\tx") " " b::unindent_amount("x") " " b::unindent_amount("") ¶
+
+// line endings: CRLF only when every line ending is one; its CR is not part of the line,
+// a CR at the very end is, and a file with mixed endings keeps its CRs in the lines
+>> (b::eol_of("a\r\nb\r\n") == "\r\n") " " (b::eol_of("a\r\nb\n") == "\r\n") " " (b::eol_of("a") == "\r\n") " " (b::eol_of("") == "\r\n") ¶
+l = b::from_text("a\r\nbc\r", "\r\n")
+>> l$# " " l[1]$# " " l[2]$# " " (b::to_text(l, "\r\n") == "a\r\nbc\r") ¶
+l = b::from_text("a\r\nb\n", "\n")
+>> l[1]$# " " (b::to_text(l, "\n") == "a\r\nb\n") ¶
