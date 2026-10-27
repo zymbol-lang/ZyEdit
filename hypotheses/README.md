@@ -40,6 +40,7 @@ that says why the case in `zyquality/` exists.
 | [`resize/`](resize/) | GAP-ZYE-012 | pty | HOLDS (2026-10-27) | `zyquality/tui/` |
 | [`string_cr/`](string_cr/) | BUG-ZYE-013 | three engines | HOLDS (2026-10-27) | `zyquality/corpus/` |
 | [`mid_array/`](mid_array/) | BUG-ZYE-014 | `--count` | HOLDS (2026-10-27) | `zyquality/cost/` |
+| [`frame/`](frame/) | GAP-ZYE-015 | pty | HOLDS (2026-10-27) | `zyquality/tui/` |
 
 DIS-ZYE-005 has no directory of its own, because its evidence is the terminal checks
 themselves. They are Python because no Zymbol program can start another program on a

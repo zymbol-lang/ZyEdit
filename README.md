@@ -7,6 +7,7 @@ A terminal text editor written in [Zymbol](https://zymbol-lang.org).
 > drawn to 4 columns, cluster-wise cursor movement and scrolling in both directions. It has
 > undo/redo, a selection with an internal clipboard, find, replace one by one, go to line,
 > auto-indent, indent/unindent and a help screen, and it redraws when the window is resized.
+> It draws only the screen rows that changed since the last frame, as serpiente and GO do.
 > `tests/run.sh` holds it: the pure modules in all three engines, the screen in both Rust
 > engines through `--keys` and through a real pty.
 >
@@ -16,9 +17,9 @@ A terminal text editor written in [Zymbol](https://zymbol-lang.org).
 > end in CRLF is edited without its CRs and saved with them; a file with mixed line endings
 > keeps its CRs inside the lines, so there End and → stop after a `\r`.
 >
-> The findings log, [HALLAZGOS.md](HALLAZGOS.md), holds fourteen entries. Five are design
+> The findings log, [HALLAZGOS.md](HALLAZGOS.md), holds fifteen entries. Five are design
 > findings, made by probing the language before the editor existed; the rest came from
-> writing it. They are to be addressed in v0.0.12 (the author's decision of 2026-10-26), and
+> writing it and using it. They are to be addressed in v0.0.12 (the author's decision of 2026-10-26), and
 > ZyEdit goes on with declared workarounds until then. Their programs and evidence are in
 > [`hypotheses/`](hypotheses/), where they stay to confirm each fix.
 
@@ -180,7 +181,8 @@ showed it.
 What was **not** expected came from writing the editor: grapheme clusters (GAP-ZYE-007), text
 to number (GAP-ZYE-008, which the language could do all along), a range with arithmetic on its
 left end (BUG-ZYE-009), case conversion (GAP-ZYE-010), two costs that only `--count` shows
-(BUG-ZYE-011, BUG-ZYE-014), and the browser engine reading `"\r"` as `r` (BUG-ZYE-013).
+(BUG-ZYE-011, BUG-ZYE-014), the browser engine reading `"\r"` as `r` (BUG-ZYE-013), and no
+way to show a screen at once, so that a redraw is seen while it is drawn (GAP-ZYE-015).
 
 ## Rules of the project
 

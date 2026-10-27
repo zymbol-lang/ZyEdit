@@ -19,60 +19,95 @@ gutter_width(lines, numbers) {
     <~ ("{total}")$# + 1
 }
 
-// Draws the visible lines, the selection, the status line and the caret. `hs` is how many
-// columns the text is scrolled to the left; `ar` is the row of the selection's anchor (0 if none).
-render(lines, row, col, top, hs, ar, ac, name, dirty, note, tag, numbers) {
+// What screen row shows of line n: (text, x, sel, sx, under, cx). `text` is the line from
+// column hs, starting x columns in (a wide glyph cut by the edge leaves a gap); `sel` is the
+// selected part of it, sx columns in ("" when none); `under` is what the caret covers, cx
+// columns in (cx = -1 when the caret is on another line). Past the end of the text, nothing.
+// (r1, c1, r2, c2) is the selection in reading order, r1 = 0 when there is none.
+row_view(lines, n, row, col, hs, wt, r1, c1, r2, c2) {
+    ? n > lines$# { <~ ("", 0, "", 0, "", -1) }
+    line = lines[n]
+    (text, x) = b::view(b::expand(line), hs)
+    sel = ""
+    sx = 0
+    ? r1 > 0 && n >= r1 && n <= r2 {
+        sc = 0
+        ec = line$#
+        ? n == r1 { sc = c1 }
+        ? n == r2 { ec = c2 }
+        ? ec > sc {
+            shown_sc = b::expand(b::before(line, sc))
+            sel = b::after(b::expand(b::before(line, ec)), shown_sc$#)
+            sx = t::width(shown_sc) - hs
+            ? sx < 0 { (sel, sx) = b::view(sel, 0 - sx) }
+            ? wt - sx > 0 { sel = t::truncate(sel, wt - sx) } _ { sel = "" }
+        }
+    }
+    under = ""
+    cx = -1
+    ? n == row {
+        (under, ux) = b::cell(line, col)
+        cx = ux - hs
+    }
+    <~ (text, x, sel, sx, under, cx)
+}
+
+// Draws what changed since the last frame, as serpiente and GO do. `shown` holds the size the
+// screen was drawn at, then one key per text row; a row whose key is the same is not drawn
+// again, so moving the caret along a line draws one row and the status line, not the screen.
+// A row is drawn whole and padded to the width, so nothing of what it held before survives
+// without clearing the screen. The status line is drawn every frame, because the prompts
+// write over it. A change of size clears the screen and draws everything.
+// `hs` is how many columns the text is scrolled to the left; `ar` is the row of the
+// selection's anchor (0 if none).
+render(lines, row, col, top, hs, ar, ac, name, dirty, note, tag, numbers, shown<~) {
     (H, W) = >>?
+    size = "{H}x{W}"
+    ? shown$# == 0 || shown[1] <> size {
+        >>!
+        shown = [size]
+    }
     body = H - 1
     gw = gutter_width(lines, numbers)
     wt = W - gw
-    >>!
+    r1 = 0
+    c1 = 0
+    r2 = 0
+    c2 = 0
+    ? ar > 0 { (r1, c1, r2, c2) = b::order(ar, ac, row, col) }
     ? body >= 1 {
         @ i:1..body {
             n = top + i - 1
-            ? n <= lines$# {
-                ? gw > 0 { >>~ (i, 1, 0, 244, 0) > t::pad_left("{n}", gw - 1) }
-                (text, x) = b::view(b::expand(lines[n]), hs)
-                >>~ (i, gw + x + 1) > t::truncate(text, wt - x)
-            }
-        }
-    }
-    ? ar > 0 {
-        (r1, c1, r2, c2) = b::order(ar, ac, row, col)
-        ? body >= 1 {
-            @ i:1..body {
-                n = top + i - 1
-                ? n >= r1 && n <= r2 && n <= lines$# {
-                    line = lines[n]
-                    sc = 0
-                    ec = line$#
-                    ? n == r1 { sc = c1 }
-                    ? n == r2 { ec = c2 }
-                    ? ec > sc {
-                        shown_sc = b::expand(b::before(line, sc))
-                        seg = b::after(b::expand(b::before(line, ec)), shown_sc$#)
-                        xs = t::width(shown_sc) - hs
-                        text = seg
-                        x = xs
-                        ? xs < 0 { (text, x) = b::view(seg, 0 - xs) }
-                        ? seg$# > 0 && wt - x > 0 { >>~ (i, gw + x + 1, 0, 16, 250) > t::truncate(text, wt - x) }
+            (text, x, sel, sx, under, cx) = row_view(lines, n, row, col, hs, wt, r1, c1, r2, c2)
+            key = "{gw}|{n}|{x}|{text}|{sx}|{sel}|{cx}|{under}"
+            ? n > lines$# { key = "past the end" }      // an empty line has the key above
+            ? shown$# <= i { shown = shown$+ "" }
+            ? shown[i + 1] <> key {
+                ? n > lines$# { >>~ (i, 1) > t::pad_right("", W) } _ {
+                    shown_text = t::pad_right(t::pad_right("", x) $++ t::truncate(text, wt - x), wt)
+                    ? gw > 0 {
+                        >>~ (i, 1, 0, 244, 0) > t::pad_left("{n}", gw - 1)
+                        >>~ (i, gw) > " " shown_text
+                    } _ {
+                        >>~ (i, 1) > shown_text
                     }
+                    ? sel$# > 0 { >>~ (i, gw + sx + 1, 0, 16, 250) > sel }
+                    // the caret: the cluster under the cursor, or a space past the end, reversed
+                    ? cx >= 0 { >>~ (i, gw + cx + 1, 0, 16, 250) > under }
                 }
+                shown[i + 1]$~ key
             }
         }
     }
     mark = ""
     ? dirty { mark = " [+]" }
-    sel = ""
-    ? ar > 0 { sel = " SEL" }
+    selecting = ""
+    ? ar > 0 { selecting = " SEL" }
     // The column shown is the one the terminal draws the caret in, tabs and wide glyphs
     // counted, not the number of Chars before it.
-    (under, cx) = b::cell(lines[row], col)
-    status = " " name mark tag sel "  " row ":" (cx + 1) "/" lines$# "  " note
+    (_under, ux) = b::cell(lines[row], col)
+    status = " " name mark tag selecting "  " row ":" (ux + 1) "/" lines$# "  " note
     >>~ (H, 1, 0, 16, 250) > t::pad_right(status, W)
-
-    // The caret: the cluster under the cursor, or a space past the end, drawn reversed.
-    >>~ (row - top + 1, gw + cx - hs + 1, 0, 16, 250) > under
 }
 
 // The first column to draw so that the caret, and the cluster under it, are on screen.
@@ -199,7 +234,7 @@ load(name) {
 // n skips, a replaces this one and every other without asking, anything else stops. It goes
 // from the cursor to the end of the text and does not wrap round.
 // Returns (count, row, col, top, hs).
-replace_each(lines<~, done<~, undone<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers) {
+replace_each(lines<~, done<~, undone<~, shown<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers) {
     count = 0
     every = #0
     @ {
@@ -209,7 +244,7 @@ replace_each(lines<~, done<~, undone<~, g, row, col, top, hs, name, saved, needl
         ? !every {
             (row, col) = (r, c + needle$#)
             (top, hs) = fit(lines, row, col, top, hs, numbers)
-            render(lines, row, col, top, hs, r, c, name, h::top_group(done) <> saved, "replace? y n a Esc", tag, numbers)
+            render(lines, row, col, top, hs, r, c, name, h::top_group(done) <> saved, "replace? y n a Esc", tag, numbers, shown<~)
             <<| key
         }
         ? key == 'a' {
@@ -308,12 +343,13 @@ cur = 1
 }
 ? note$# == 0 { note = "Ctrl+G: help" }
 asked = #0
+shown = []              // what render drew on each screen row (render explains)
 
 >>| {
     @ {
         (top, hs) = fit(lines, row, col, top, hs, numbers)
         tag = tag_of(cur, bufs$#, nocase, eol)
-        render(lines, row, col, top, hs, ar, ac, name, h::top_group(done) <> saved, note, tag, numbers)
+        render(lines, row, col, top, hs, ar, ac, name, h::top_group(done) <> saved, note, tag, numbers, shown<~)
         note = ""
         (H, W) = >>?
         k = wait_key(H, W)
@@ -433,7 +469,7 @@ asked = #0
                     (with_ok, with) = prompt("With: ", "")
                     ? with_ok {
                         g = g + 1
-                        (count, row, col, top, hs) = replace_each(lines<~, done<~, undone<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers)
+                        (count, row, col, top, hs) = replace_each(lines<~, done<~, undone<~, shown<~, g, row, col, top, hs, name, saved, needle, with, nocase, tag, numbers)
                         col = b::snap(lines[row], col)
                         ar = 0
                         marking = #0
@@ -452,7 +488,10 @@ asked = #0
                             marking = #0
                         }
                     }
-                    _? text == "help" { help_screen() }
+                    _? text == "help" {
+                        help_screen()
+                        shown = []          // it drew over every row
+                    }
                     _? text == "next" { go = cur % bufs$# + 1 }
                     _? text == "prev" { go = (cur + bufs$# - 2) % bufs$# + 1 }
                     _? text == "close" { go = -1 }

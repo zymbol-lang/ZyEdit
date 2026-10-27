@@ -1,0 +1,9 @@
+# hypotheses/frame — evidence before any fix
+# date:    2026-10-27
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.11)
+# commit:  interpreter b10b819 2026-10-25 (branch v0.0.11), release build
+# command: python3 hypotheses/frame/check.py
+
+frame: zyvm, zytw agree; a clear and 23 `>>~` reach the terminal in 93 writes
+  GAP-ZYE-015  HOLDS
+exit status: 1

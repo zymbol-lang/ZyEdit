@@ -25,7 +25,7 @@
 >
 > **Estado del ciclo (2026-10-27).** Abierto el 2026-10-20, antes de la primera línea del
 > editor, con cinco hallazgos de diseño. Escribir las etapas 1 y 2 (2026-10-26 y 27) trajo
-> nueve más. Son **catorce, todos abiertos y para la v0.0.12**; el 008 está retirado como
+> nueve más, y usarlo uno (el 015). Son **quince, todos abiertos y para la v0.0.12**; el 008 está retirado como
 > incapacidad y sigue abierto como error sin guía. Ninguno bloquea ya una etapa: donde el
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
@@ -56,6 +56,7 @@
 | [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
 | [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **abierto** · para v0.0.12 |
 | [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
+| [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado, en 2 a 6 escrituras, y `>>!` en otra; un repintado se ve mientras se dibuja, la pantalla en blanco primero | **abierto** · para v0.0.12 |
 
 ---
 
@@ -71,8 +72,9 @@ Las comprobaciones viven en [`hypotheses/`](hypotheses/), una carpeta por pregun
 | [`hypotheses/resize/`](hypotheses/resize/) | 012 | si un programa que espera en `<<\|` se entera de que la ventana cambió de tamaño |
 | [`hypotheses/string_cr/`](hypotheses/string_cr/) | 013 | qué hace cada motor con `"\r"` dentro de una cadena |
 | [`hypotheses/mid_array/`](hypotheses/mid_array/) | 014 | cuánto cuesta una edición en medio de un array de 10 000 elementos |
+| [`hypotheses/frame/`](hypotheses/frame/) | 015 | en cuántas escrituras llega al terminal un fotograma dibujado con `>>!` y `>>~` |
 
-Las tres de terminal (`keys`, `cursor`, `resize`) arrancan el programa por un **pty de verdad**
+Las cuatro de terminal (`keys`, `cursor`, `resize`, `frame`) arrancan el programa por un **pty de verdad**
 en los dos motores, les mandan los bytes que manda xterm (que son los que manda casi cualquier
 emulador) y dan un veredicto por hallazgo. Fallan si los motores no coinciden antes de dar
 ninguno. No se pueden hacer con `zymbol run --keys`: el guion entrega al programa teclas ya
@@ -585,6 +587,83 @@ mediría el apaño y no el editor, como dice la decisión 1.
 
 **Su «después»:** `hypotheses/mid_array/check.sh` da `FIXED`, `tests/cost.sh` falla con *«close
 BUG-ZYE-014»* hasta que se cierre la ficha, y un caso de `zyquality/cost/` lo sujeta.
+
+---
+
+## GAP-ZYE-015
+
+**No hay fotograma: cada `>>~` llega al terminal por separado, y un repintado se ve mientras
+se dibuja.**
+
+Salió de usar el editor (2026-10-27): el autor describió la pantalla como *estroboscópica* al
+moverse por el texto sin desplazarlo. Tenía dos causas, una del editor y otra del lenguaje.
+
+**La del editor, corregida el mismo día.** `render` empezaba cada fotograma con `>>!` y volvía a
+dibujar las 24 filas, aunque sólo se hubiera movido el caret. Ahora hace lo que hacen serpiente
+(`dibujo.zy`, «renderizado delta») y GO (`升描画` sobre las dos casillas que cambian al mover el
+cursor): guarda una clave por fila de pantalla y sólo dibuja las filas cuya clave cambió, cada
+una entera y rellenada hasta el ancho, sin borrar la pantalla. Medido por un pty con
+`/proc/<pid>/io`, igual en los dos motores, sobre un fichero de 60 líneas:
+
+| tecla | antes: escrituras · bytes · borrados | ahora |
+|---|---|---|
+| → | 147 · 2 252 · 1 | 14 · 260 · 0 |
+| ↓ | 147 · 2 252 · 1 | 20 · 376 · 0 |
+| una letra | 147 · 2 253 · 1 | 14 · 260 · 0 |
+| Ctrl+L (una página) | 147 · 2 254 · 1 | 146 · 2 841 · 0 |
+
+Ninguno de los 51 goldens cambió: lo que queda en pantalla en cada `SHOW` es lo mismo que con el
+repintado completo. Los goldens sí atraparon un fallo del primer intento: una línea vacía y una
+fila más allá del final del texto tenían la misma clave.
+
+**La del lenguaje, abierta.** Dentro de `>>|`, los dos motores hacen un `execute!` de crossterm por
+cada pieza de un `>>~` (mover el cursor, el color de letra, el de fondo, el reinicio del estilo)
+y además vacían la salida al final. Cada `execute!` vacía la salida, así que un `>>~` con
+colores son unas cuatro escrituras, y `>>!` es otra. Ningún programa puede decir «esto es una
+pantalla: enséñala entera». El terminal es libre de pintar cada estado intermedio, y lo hace:
+en un repintado completo, el primero es la pantalla en blanco. El programa mínimo está en
+[`hypotheses/frame/`](hypotheses/frame/):
+
+```zymbol
+>>| {
+    @ {
+        <<| k
+        ? k == 'q' { @! }
+        code = ##!k
+        >>!
+        @ i:1..23 { >>~ (i, 1, 0, 244, 0) > "row {i} after key {code}" }
+    }
+}
+```
+
+Un borrado y 23 `>>~` llegan al terminal en **93 escrituras**, en los dos motores. El dibujo por
+diferencias del editor lo reduce, pero no lo quita: al pasar de página cambian todas las filas.
+Ya no hay pantalla en blanco, pero sí 146 escrituras y una pantalla a medio dibujar.
+
+**Lo que no sirve sin más: vaciar la salida sólo cuando el programa espera.** Sería invisible
+para el lenguaje y haría de cada fotograma una sola escritura, pero GO pinta «考慮中» y la piedra
+recién puesta y se pone a pensar sin esperar ninguna tecla (`対局.zy`, líneas 518–519 y
+585–586). Con esa regla, las dos cosas aparecerían cuando la IA ya hubiera terminado.
+
+**Lo esperable**, de menos a más, a elegir por el autor:
+1. **Una escritura por `>>~` y por `>>!`** en los dos motores: `queue!` en lugar de `execute!`, y un
+   solo vaciado al final. No cambia nada de lo que se ve ni de lo que un programa puede decir;
+   la sonda pasa de 93 escrituras a 24 y la página del editor, de 146 a unas 48. Es un arreglo
+   de implementación, no de lenguaje.
+2. **Fotograma implícito, con una forma de decir «enséñalo ya».** Dentro de `>>|` la salida se
+   acumula y se vacía al esperar (`<<|`, `<<|?`, `@~`, `<<`) y al salir, envuelta en la
+   actualización sincronizada que entienden los terminales modernos (`ESC [ ? 2026 h` … `l`:
+   kitty, WezTerm o foot pintan el fotograma de una vez; los demás la ignoran). Cada programa
+   gana sin tocarlo, salvo los que dibujan y luego calculan sin esperar: GO y Chaturanga
+   tendrían que escribir el «enséñalo ya» antes de pensar. Cambio de lenguaje.
+3. **Fotograma explícito**: el programa marca dónde empieza y dónde acaba una pantalla, y todo
+   lo demás sigue como hoy. Cambio de lenguaje, y sólo lo gana quien lo escribe.
+
+Un símbolo nuevo pasaría antes por `zymbol-design/SYMBOLS.md` § 17; una función de `std/term`,
+no.
+
+**Su «después»:** `hypotheses/frame/check.py` da `FIXED` (un fotograma, una escritura) con la
+salida 2 o la 3. Con la 1 baja de 93 a 24 y el hallazgo sigue en pie.
 
 ---
 

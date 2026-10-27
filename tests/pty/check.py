@@ -69,17 +69,21 @@ def start(path, rows=24, cols=80):
     return pid, fd, Screen(rows, cols)
 
 def pump(fd, scr, secs=0.6):
+    """Feeds what the program writes to the screen, and returns it as it came."""
+    seen = ""
     end = time.time() + secs
     while time.time() < end:
         r, _, _ = select.select([fd], [], [], 0.05)
         if r:
             try: chunk = os.read(fd, 65536)
-            except OSError: return
-            if not chunk: return
-            scr.feed(chunk.decode("utf-8", "replace"))
+            except OSError: return seen
+            if not chunk: return seen
+            text = chunk.decode("utf-8", "replace")
+            scr.feed(text); seen += text
+    return seen
 
 def send(fd, scr, data, secs=0.25):
-    os.write(fd, data); pump(fd, scr, secs)
+    os.write(fd, data); return pump(fd, scr, secs)
 
 def stop(pid):
     try: os.kill(pid, signal.SIGKILL)
@@ -106,8 +110,13 @@ check("the caret is drawn reversed on the first character", scr.reversed_text(0)
 
 send(fd, scr, b"X")
 check("a printable key is inserted", "Xhello" in scr.line(0), scr.line(0))
-send(fd, scr, b"\x1b[B")                      # xterm's Down
+drawn = send(fd, scr, b"\x1b[B")              # xterm's Down
 check("the arrow decodes to a move", " 2:2" in scr.line(23) or "2:2/" in scr.line(23), scr.line(23))
+# Only the rows that changed are drawn (GAP-ZYE-015): a move clears nothing, and draws the
+# two rows the caret left and reached, and the status line.
+rows = {int(m) for m in re.findall(r"\x1b\[(\d+);\d+H", drawn)}
+check("moving the caret draws only what changed", "\x1b[2J" not in drawn and rows == {1, 2, 24},
+      f"clear: {'yes' if chr(27) + '[2J' in drawn else 'no'}, rows drawn: {sorted(rows)}")
 send(fd, scr, b"\x02"); send(fd, scr, b"\x1b[C"); send(fd, scr, b"\x1b[C")        # Ctrl+B, Right, Right
 check("the selection is drawn reversed", len(scr.reversed_text(1).strip()) >= 2 and "SEL" in scr.line(23),
       repr(scr.reversed_text(1)) + " | " + scr.line(23))
