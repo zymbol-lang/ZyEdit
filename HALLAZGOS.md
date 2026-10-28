@@ -88,7 +88,7 @@ bash hypotheses/run.sh                      # todas; sale con 1 mientras alguna 
 python3 hypotheses/keys/check.py --table    # y el valor de cada tecla
 ```
 
-Medido el 2026-10-20 con el binario de release de `interpreter` en `c3468c1` (rama `v0.0.11`),
+Medido el 2026-10-20 con el binario de release de `interpreter` en `9666867` (rama `v0.0.11`),
 y guardado en `hypotheses/*/evidence/2026-10-20.txt`. **Los dos motores dan la misma
 respuesta**, como era de esperar: los dos traducen la tecla con una función `map_key_code` que
 debe coincidir. Están en `crates/zymbol-host/src/lib.rs` (VM) y
