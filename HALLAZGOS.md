@@ -54,7 +54,7 @@
 | [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII | **abierto** · para v0.0.12 |
 | [BUG-ZYE-011](#bug-zye-011) | BUG | `zymbol-vm` | tras `(a, k) = v[1]` y `v[1]$~ otra`, la VM copia entero el array `a` en la primera edición; el tree-walker no copia nada | **abierto** · para v0.0.12 |
 | [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
-| [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **abierto** · para v0.0.12 |
+| [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **corregido** · 2026-10-30, v0.0.11 |
 | [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
 | [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado y ningún programa puede enseñar una pantalla entera de una vez, así que un repintado se ve mientras se dibuja (desde el 2026-10-27, una escritura por `>>~` y no cuatro) | **abierto** · la 2 para v0.0.12 |
 
@@ -546,6 +546,17 @@ hallazgo.
 
 **Su «después»:** `hypotheses/string_cr/check.sh` da `FIXED`, `buffer.zyjs.known` desaparece y
 un caso de `zyquality/corpus/` con `\r` dentro de una cadena lo sujeta.
+
+**CORREGIDO (2026-10-30, v0.0.11).** El lexer de zyjs lee `\r` dentro de una cadena como el
+retorno de carro. Lo encontró de nuevo, sin saber de esta ficha, el adaptador de AST de
+`zymbol_vm.js` al leer `src/buffer.zy`, y se corrigió en `web/src/zymbol/zymbol.js`, que desde
+ese día es el de los dos motores del playground (`web/zymbol_vm/HALLAZGOS.md`, § BUG-VMJS-003).
+Comprobado el mismo día: `hypotheses/string_cr/check.sh` da `FIXED`; `tests/run.sh` decía
+*«agrees now: close BUG-ZYE-013»*, y ya pasa sin el `.known`, que se borró; lo sujeta
+`zyquality/corpus/strings/cr_escape_in_text.zy`, en los cuatro motores.
+
+La asimetría de al lado (`"\0"` es la letra `0` en una cadena y un error en un carácter) sigue
+sin registrar.
 
 ---
 

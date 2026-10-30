@@ -26,19 +26,12 @@ for e in "" --tw; do
     diff -q "$W/m.out" $m.expected >/dev/null && echo "ok   $m ($mode)" || { echo "FAIL $m ($mode)"; fail=1; }
   done
 done
-# ... and the browser engine. buffer.zy writes "\r", which zyjs reads as the letter r
-# (BUG-ZYE-013); buffer.zyjs.known is what it prints because of that. KNOWN while
-# it prints exactly that, FAIL once it agrees with the golden, so that the finding is closed.
+# ... and the browser engine, against the same goldens (BUG-ZYE-013, the "\r" that
+# zyjs read as the letter r, was corrected for v0.0.11).
 if command -v node >/dev/null && [ -f "$JS" ]; then
   for m in buffer history; do
     node "$JS" $m.zy < /dev/null 2>&1 | zyq_filter > "$W/m.out"
-    if diff -q "$W/m.out" $m.expected >/dev/null; then
-      [ $m = buffer ] && { echo "FAIL $m (zyjs) agrees now: close BUG-ZYE-013"; fail=1; } || echo "ok   $m (zyjs)"
-    elif [ -f $m.zyjs.known ] && diff -q "$W/m.out" $m.zyjs.known >/dev/null; then
-      echo "KNOWN $m (zyjs): BUG-ZYE-013"
-    else
-      echo "FAIL $m (zyjs)"; fail=1
-    fi
+    diff -q "$W/m.out" $m.expected >/dev/null && echo "ok   $m (zyjs)" || { echo "FAIL $m (zyjs)"; fail=1; }
   done
 else
   echo "skip modules (zyjs): no node, or no $JS"

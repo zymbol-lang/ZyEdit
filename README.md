@@ -181,7 +181,8 @@ showed it.
 What was **not** expected came from writing the editor: grapheme clusters (GAP-ZYE-007), text
 to number (GAP-ZYE-008, which the language could do all along), a range with arithmetic on its
 left end (BUG-ZYE-009), case conversion (GAP-ZYE-010), two costs that only `--count` shows
-(BUG-ZYE-011, BUG-ZYE-014), the browser engine reading `"\r"` as `r` (BUG-ZYE-013), and no
+(BUG-ZYE-011, BUG-ZYE-014), the browser engine reading `"\r"` as `r` (BUG-ZYE-013, corrected
+for v0.0.11), and no
 way to show a screen at once, so that a redraw is seen while it is drawn (GAP-ZYE-015).
 
 ## Rules of the project
