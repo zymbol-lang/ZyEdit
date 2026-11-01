@@ -1,0 +1,12 @@
+// BUG-ZYE-011: take a tuple out of an array, replace its slot, edit what was inside it.
+// `zymbol run --count probe.zy`: the VM copies the whole inner array (copied=1002 for 1000
+// lines), the tree-walker copies nothing. The controls beside it (control_*.zy) copy
+// nothing in either engine; through_function.zy is the same bug in the editor's shape.
+big = []
+@ _i:1..1000 { big = big$+ "line" }
+bufs = [(big, 1), ([""], 0)]
+big = []
+(lines, _k) = bufs[1]
+bufs[1]$~ ([""], 0)
+lines[500]$~ "edited"
+lines[501]$~ "edited"

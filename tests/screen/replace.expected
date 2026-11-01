@@ -1,0 +1,168 @@
+1 Cat cat CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt nocase  1:1/3  search ignores case
+1 Cat cat CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt nocase SEL  1:4/3  replace? y n a Esc
+1 Cat cat CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt nocase SEL  1:8/3  replace? y n a Esc
+1 Cat x CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt [+] nocase SEL  1:10/3  replace? y n a Esc
+1 Cat x x
+2 x
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt [+] nocase  2:2/3  replaced 3
+1 Cat cat CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt nocase  1:5/3
+1 Cat cat CAT
+2 cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt nocase  1:5/3

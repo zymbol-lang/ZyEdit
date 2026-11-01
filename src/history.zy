@@ -1,0 +1,106 @@
+// history.zy — undo and redo, as data: a stack of edits that can be replayed both ways.
+//
+// An edit is a tuple (group, kind, row, col, text, cur_row, cur_col):
+//   kind   'T' typed text, 'i' inserted text, 'd' deleted text; text sits at (row, col)
+//   group  edits of one user action share it, so one undo takes them all back
+//   cursor where the cursor was before the edit, which is where an undo puts it
+// `done` holds what can be undone (last on top) and `undone` what can be redone. Every
+// function edits the text and both stacks in place (`<~`), for the same reason as in
+// buffer.zy: by value, each keystroke would copy the whole text.
+// Only edits made here reach the stacks, so the text must be changed through them.
+
+# history {
+    <# ./buffer => b
+
+    #> { insert, remove, undo, redo, top_group }
+
+    // The group of the last edit that can be undone (0 when there is none): two moments
+    // have the same text when this is the same number.
+    top_group(done) {
+        ? done$# == 0 { <~ 0 }
+        (g, _k, _r, _c, _t, _cr, _cc) = done[done$#]
+        <~ g
+    }
+
+    // Writes text at (row, col) as part of group g; returns the position after it.
+    // Typed text ('T') that continues the previous typed text joins its edit, unless it
+    // starts a new word, so that undoing a sentence takes back a word at a time. It joins
+    // only when that edit was the action just before (group g - 1), and the joined edit
+    // takes the new group: the top group changes with every change to the text, which is
+    // what tells a saved buffer from a modified one. A caller that raises g between two
+    // keys (a save does) keeps them apart.
+    insert(lines<~, done<~, undone<~, g, kind, row, col, text, cur_row, cur_col) {
+        text = "{text}"            // a typed key arrives as a Char
+        ? text$# == 0 { <~ (row, col) }
+        undone = []
+        n = done$#
+        ? kind == 'T' && n > 0 {
+            (pg, pk, pr, pc, pt, pcr, pcc) = done[n]
+            (er, ec) = b::end_pos(pr, pc, pt)
+            ? pk == 'T' && pg == g - 1 && er == row && ec == col && text <> " " && pt[pt$#] <> ' ' {
+                done[n]$~ (g, pk, pr, pc, pt $++ text, pcr, pcc)
+                <~ b::insert_text(lines<~, row, col, text)
+            }
+        }
+        done = done$+ (g, kind, row, col, text, cur_row, cur_col)
+        <~ b::insert_text(lines<~, row, col, text)
+    }
+
+    // Removes what lies between (r1, c1) and (r2, c2) as part of group g; returns the text.
+    remove(lines<~, done<~, undone<~, g, r1, c1, r2, c2, cur_row, cur_col) {
+        undone = []
+        text = b::text_range(lines, r1, c1, r2, c2)
+        ? text$# == 0 { <~ "" }
+        done = done$+ (g, 'd', r1, c1, text, cur_row, cur_col)
+        b::delete_range(lines<~, r1, c1, r2, c2)
+        <~ text
+    }
+
+    // Takes back the last group of edits: (did, row, col), the cursor being where it was.
+    undo(lines<~, done<~, undone<~) {
+        ? done$# == 0 { <~ (#0, 1, 0) }
+        g = top_group(done)
+        row = 1
+        col = 0
+        @ {
+            ? done$# == 0 || top_group(done) <> g { @! }
+            rec = done[done$#]
+            (_g, k, r, c, t, cr, cc) = rec
+            ? k == 'd' {
+                b::insert_text(lines<~, r, c, t)
+            } _ {
+                (er, ec) = b::end_pos(r, c, t)
+                b::delete_range(lines<~, r, c, er, ec)
+            }
+            done = done$-[done$#]
+            undone = undone$+ rec
+            (row, col) = (cr, cc)
+        }
+        <~ (#1, row, col)
+    }
+
+    // Does again the last group that was taken back: (did, row, col), the cursor being
+    // where the last edit of the group leaves it.
+    redo(lines<~, done<~, undone<~) {
+        ? undone$# == 0 { <~ (#0, 1, 0) }
+        (g, _k, _r, _c, _t, _cr, _cc) = undone[undone$#]
+        row = 1
+        col = 0
+        @ {
+            ? undone$# == 0 { @! }
+            rec = undone[undone$#]
+            (rg, k, r, c, t, _cr, _cc) = rec
+            ? rg <> g { @! }
+            ? k == 'd' {
+                (er, ec) = b::end_pos(r, c, t)
+                b::delete_range(lines<~, r, c, er, ec)
+                (row, col) = (r, c)
+            } _ {
+                (row, col) = b::insert_text(lines<~, r, c, t)
+            }
+            undone = undone$-[undone$#]
+            done = done$+ rec
+        }
+        <~ (#1, row, col)
+    }
+}

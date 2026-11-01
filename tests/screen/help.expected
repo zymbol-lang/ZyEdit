@@ -1,0 +1,68 @@
+ZyEdit
+
+  arrows            move              Ctrl+U / Ctrl+E   start / end of the line
+  Ctrl+P / Ctrl+L   page up / down    Ctrl+G   a line number, or a command
+  Ctrl+B            start / stop selecting; the arrows then extend it
+  Ctrl+A            select all        Esc      clear the selection
+  Ctrl+C / Ctrl+X / Ctrl+V            copy / cut / paste
+  Ctrl+Z / Ctrl+Y   undo / redo       Ctrl+D   delete forward
+  Ctrl+F            find              Ctrl+K   find next
+  Ctrl+R            replace: y yes, n skip, a all the rest, Esc stop
+  Ctrl+S            save              Ctrl+T   save as
+  Ctrl+O            open a file (empty name: a new buffer)
+  Ctrl+N            next buffer       Ctrl+W   close the buffer
+  Ctrl+Q            quit (twice, when there are unsaved changes)
+  Tab               four spaces; on a selection, indent its lines
+
+Commands for Ctrl+G:  <number>  prev  next  close  indent  unindent
+                      case  numbers  help
+
+Press any key.
+x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  1:1/2
+x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  1:1/2

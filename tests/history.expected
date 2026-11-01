@@ -1,0 +1,21 @@
+one four
+two|  undo:2 redo:0  @1:8
+one 
+two|  undo:1 redo:1  @1:4
+one
+two|  undo:0 redo:2  @1:3
+one 
+two|  undo:1 redo:1  @1:4
+one 
+TWO
+more|  undo:3 redo:0  @3:4
+one 
+two|  undo:1 redo:2  @2:3
+one 
+TWO
+more|  undo:3 redo:0  @3:4
+>one 
+two|  undo:2 redo:0  @1:1
+one
+two|  undo:0 redo:2  @1:0
+#0 0

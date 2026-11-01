@@ -1,0 +1,11 @@
+# a tab is drawn as spaces and the caret covers it; the text keeps its tab
+RIGHT
+SHOW
+RIGHT
+SHOW
+DOWN
+SHOW
+CTRL+E
+SHOW
+CTRL+S
+CTRL+Q

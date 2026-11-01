@@ -1,0 +1,18 @@
+// BUG-ZYE-014: what one edit in the middle of a 10 000-element array costs, with one owner.
+//   zymbol run --count probe.zy <op> <k>
+// op is insert (a$+[i] v), remove_range (a$-[i..j]), remove (a$-[i]) or replace (a[i]$~ v),
+// done k times. check.sh runs k = 1 and k = 2: the difference is what one edit costs.
+>< args
+op = args[1]
+k = #|args[2]|
+lines = []
+@ _i:1..10000 { lines = lines$+ "the quick brown fox" }
+? k >= 1 {
+    @ _j:1..k {
+        ? op == "insert" { lines$+[50] "Z" }
+        _? op == "remove_range" { lines$-[50..51] }
+        _? op == "remove" { lines$-[50] }
+        _? op == "replace" { lines[50]$~ "Z" }
+    }
+}
+>> op " " k " " lines$# ¶

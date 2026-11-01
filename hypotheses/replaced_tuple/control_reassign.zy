@@ -1,0 +1,10 @@
+// Control for BUG-ZYE-011: the same steps as probe.zy, but `bufs` is assigned whole
+// instead of having its slot replaced with `$~`. Both engines copy nothing (copied=0),
+// before the fix and after it: what keeps the reference is the replaced slot.
+big = []
+@ _i:1..1000 { big = big$+ "line" }
+bufs = [(big, 1), ([""], 0)]
+big = []
+(lines, _k) = bufs[1]
+bufs = [([""], 0), ([""], 0)]
+lines[500]$~ "edited"

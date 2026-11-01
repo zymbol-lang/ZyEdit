@@ -1,0 +1,14 @@
+// Opens a file and saves it untouched: zymbol run roundtrip.zy IN OUT.
+// run.sh compares IN and OUT byte for byte; with no arguments it only says how to call it.
+<# ../src/buffer => b
+<# std/io => io
+
+>< a
+? a$# < 2 { >> "usage: zymbol run roundtrip.zy IN OUT" ¶ } _ {
+    t = io::read(a[1])
+    ? t$! { >> "READ ERR " t ¶ } _ {
+        eol = b::eol_of(t)
+        r = io::write(a[2], b::to_text(b::from_text(t, eol), eol))
+        ? r$! { >> "WRITE ERR " r ¶ }
+    }
+}

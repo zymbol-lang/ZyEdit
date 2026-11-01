@@ -1,0 +1,240 @@
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt SEL  1:8/3
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt SEL  2:19/3
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt SEL  1:8/3
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt SEL  2:19/3  replace? y n a Esc
+1 the cat sat on the mat
+2 the end of the dog
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt [+]  2:19/3  replaced 1
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  2:16/3
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  2:16/3
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  2:16/3  no such line
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  2:16/3  not found
+1 the cat sat on the mat
+2 the end of the cat
+3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ f.txt  2:16/3  not found

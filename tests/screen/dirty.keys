@@ -1,0 +1,15 @@
+# a key typed after a save marks the buffer modified; undo goes back to the saved text and
+# clears the mark, redo sets it again, and Ctrl+Q asks first
+a
+b
+CTRL+S
+SHOW
+c
+SHOW
+CTRL+Z
+SHOW
+CTRL+Y
+SHOW
+CTRL+Q
+SHOW
+CTRL+Q

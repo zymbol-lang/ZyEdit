@@ -1,0 +1,12 @@
+// GAP-ZYE-015: how a frame reaches the terminal. After each key the probe clears the screen
+// and draws 23 rows with `>>~`, the shape of every full redraw; check.py counts the write
+// calls the engine makes to show it.
+>>| {
+    @ {
+        <<| k
+        ? k == 'q' { @! }
+        code = ##!k
+        >>!
+        @ i:1..23 { >>~ (i, 1, 0, 244, 0) > "row {i} after key {code}" }
+    }
+}

@@ -1,0 +1,10 @@
+// GAP-ZYE-012: what a program blocked in `<<|` learns when the window is resized.
+// Prints each key with the size `>>?` then reports. check.py drives it through a pty.
+>>| {
+    @ {
+        <<| k
+        ? k == 'q' { @! }
+        (h, w) = >>?
+        >> "key " ##!k " size " h "x" w ¶
+    }
+}

@@ -1,0 +1,20 @@
+// The cost of one edit in the middle of an n-line buffer (README, decision 1).
+//   zymbol run --count cost.zy <edit> <n>      edit: none, char or line
+// cost.sh runs it for each edit and two sizes; an edit's cost is its count minus none's.
+// With no arguments it is `none 100`.
+<# ../src/history => h
+
+>< args
+edit = "none"
+n = 100
+? args$# >= 1 { edit = args[1] }
+? args$# >= 2 { n = #|args[2]| }
+lines = []
+? n >= 1 {
+    @ _i:1..n { lines = lines$+ "the quick brown fox jumps over the lazy dog" }
+}
+(r, c) = (n / 2, 10)
+done = []
+undone = []
+? edit == "char" { (r, c) = h::insert(lines<~, done<~, undone<~, 1, 'T', r, c, 'X', r, c) }
+_? edit == "line" { (r, c) = h::insert(lines<~, done<~, undone<~, 1, 'i', r, c, "\nZ", r, c) }

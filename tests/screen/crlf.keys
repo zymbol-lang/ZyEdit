@@ -1,0 +1,10 @@
+# CRLF is shown in the status bar and the \r is not drawn; End stops before it, and what is
+# typed there, Enter included, is saved with CRLF endings (run.sh compares the bytes)
+CTRL+E
+SHOW
+X
+ENTER
+Y
+CTRL+S
+SHOW
+CTRL+Q

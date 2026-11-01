@@ -1,0 +1,27 @@
+# Enter repeats the indent; Tab indents a selection; the unindent command takes it back
+DOWN
+CTRL+E
+ENTER
+z
+SHOW
+CTRL+B
+UP
+TAB
+SHOW
+CTRL+G
+u
+n
+i
+n
+d
+e
+n
+t
+ENTER
+SHOW
+CTRL+Z
+CTRL+Z
+CTRL+Z
+SHOW
+CTRL+Q
+CTRL+Q
