@@ -1,0 +1,9 @@
+# hypotheses/frame — the frame itself (GAP-ZYE-015 option 2, D-09)
+# date:    2026-11-22
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.12 (alpha)), rebuilt with --features db
+# commit:  interpreter e8b148f (branch v0.0.12) + the frame, uncommitted when measured
+# command: python3 hypotheses/frame/check.py
+
+frame: zyvm, zytw agree; a clear and 23 `>>~` reach the terminal in 1 writes
+  GAP-ZYE-015  FIXED
+exit status: 0

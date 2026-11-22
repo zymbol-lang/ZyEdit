@@ -183,7 +183,8 @@ to number (GAP-ZYE-008, which the language could do all along), a range with ari
 left end (BUG-ZYE-009), case conversion (GAP-ZYE-010), two costs that only `--count` shows
 (BUG-ZYE-011, BUG-ZYE-014), the browser engine reading `"\r"` as `r` (BUG-ZYE-013, corrected
 for v0.0.11), and no
-way to show a screen at once, so that a redraw is seen while it is drawn (GAP-ZYE-015).
+way to show a screen at once, so that a redraw is seen while it is drawn (GAP-ZYE-015, corrected
+for v0.0.12: the frame).
 
 ## Rules of the project
 

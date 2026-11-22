@@ -30,6 +30,10 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
+> **Al día (2026-11-22).** Dos de los quince están corregidos: el 013 (2026-10-30, v0.0.11) y el
+> 015 (2026-11-22, v0.0.12, el fotograma). Quedan **doce abiertos** y el 008 a medias, todos para la
+> v0.0.12. La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
+>
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
 > comprobación que da un veredicto por hallazgo (`HOLDS` o `FIXED`) y la respuesta guardada en
 > `evidence/<fecha>.txt` con el binario y el commit. Después del arreglo, la misma comprobación
@@ -56,7 +60,7 @@
 | [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
 | [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **corregido** · 2026-10-30, v0.0.11 |
 | [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
-| [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado y ningún programa puede enseñar una pantalla entera de una vez, así que un repintado se ve mientras se dibuja (desde el 2026-10-27, una escritura por `>>~` y no cuatro) | **abierto** · la 2 para v0.0.12 |
+| [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado y ningún programa puede enseñar una pantalla entera de una vez, así que un repintado se ve mientras se dibuja (desde el 2026-10-27, una escritura por `>>~` y no cuatro) | **corregido** · 2026-11-22, v0.0.12: la 2 (D-09) |
 
 ---
 
@@ -695,6 +699,49 @@ coinciden en todas: 260, 376, 2 841 y 2 252.
 
 **Su «después»:** `hypotheses/frame/check.py` da `FIXED` (un fotograma, una escritura) con la
 salida 2. Con la 1 baja de 93 a 24, y el hallazgo sigue en pie.
+
+**CORREGIDO (2026-11-22, v0.0.12): la 2, con `@~ 0` como «enséñalo ya» (D-09).** En los cuatro
+motores. Dentro de `>>|`, `>>`, `¶`, `>>!` y `>>~` se acumulan en un fotograma, y el fotograma
+llega al terminal cuando el programa espera (`<<|`, `<<|?`, `@~`, `<<`) y cuando el bloque acaba,
+por cualquier camino. Va en una sola escritura entre `ESC [ ? 2026 h` y `ESC [ ? 2026 l`. «Enséñalo ya» no
+es una forma nueva: es `@~ 0`, una espera de cero milisegundos. Lo decidió el autor el
+2026-11-22 (D-09 en `interpreter/ROADMAP_V0012_ES.md`).
+
+- **Los dos motores de Rust** guardan el fotograma en un `Vec<u8>` propio: el `NativeTerminal` de
+  `zymbol-host` y el `Interpreter` del tree-walker. Lo escriben con una sola función,
+  `zymbol_common::screen::show`, que pasa por encima del `LineWriter` de `stdout`: ese búfer
+  escribe hasta el último salto de línea y deja el resto para una segunda escritura. Si un
+  fotograma pasa de 1 MiB, se enseña sin esperar. Es una guarda de memoria contra un bucle que
+  dibuja y nunca espera, no una regla que un programa note.
+- **Los dos del navegador** comparten el `BrowserTUI` del playground. El programa dibuja en un
+  canvas fuera de pantalla, y `show()` lo copia al visible en cada espera. Hacía falta: el
+  intérprete cede el turno a la página cada 16 ms mientras calcula, y la página pintaba lo que
+  hubiera en ese momento.
+- **GO y Chaturanga** escriben `@~ 0` antes de pensar: GO en `対局.zy`, en los tres sitios
+  donde pinta «考慮中», y Chaturanga en `क्रीडा.zy` tras «thinking…». El modo espectador de GO
+  no lo necesita, porque consulta el teclado con `<<|?` en cada vuelta.
+
+| | antes | después |
+|---|---|---|
+| `hypotheses/frame/check.py`: un borrado y 23 `>>~` | 24 escrituras | **1** · `FIXED` |
+| «thinking», `@~ 0` y 0,1 s de cálculo (VM, pty) | — | «thinking» a los 0,006 s, el resultado a los 0,107 s |
+| lo mismo sin `@~ 0` | — | los dos a los 0,121 s |
+| playground, filas 1, 3 y 5 del canvas visible mientras calcula | `100 → 110 → 111` | `100 → 111` |
+
+La última fila se midió en Chrome sin interfaz, en los dos motores del navegador. Antes del
+cambio, la fila 3 ya se veía mientras el programa seguía calculando la 5: una pantalla a medio
+dibujar.
+
+**Lo que destapó: ZYVM-033.** Para llevar `>>` y `¶` al mismo búfer que `>>~` hubo que mirar qué
+bytes escribe cada motor dentro de `>>|`. La VM escribía `¶` como LF y no como CR LF, así que
+`>> … ¶` se dibujaba en escalera en el motor por defecto desde la v0.0.11. Está en
+`ZyDDT/HALLAZGOS/zyvm.md`.
+
+**Qué lo sujeta:** `zyquality/tui/frame_newline.zy`, con golden. Por un pty de verdad comprueba los
+tres fotogramas (en el primer `<<|`, en `@~ 0` y en el segundo `<<|`), el CR LF de `¶` y los
+corchetes de 2026 alrededor de cada fotograma. `keys_control.expected` cambió por lo mismo: cada
+`<<|` enseña lo que se escribió antes. La evidencia está en
+`hypotheses/frame/evidence/2026-11-22-frame.txt`.
 
 ---
 
