@@ -30,10 +30,11 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
-> **Al día (2026-11-23).** Siete de los quince están corregidos: el 013 (2026-10-30, v0.0.11),
+> **Al día (2026-11-23).** Ocho de los quince están corregidos: el 013 (2026-10-30, v0.0.11),
 > el 015 (2026-11-22, v0.0.12, el fotograma), el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
-> teclas: D-13, D-14 y D-15), el 004 (2026-11-23, el cursor: D-16) y el 012 (2026-11-23, el
-> redimensionado: D-17). Quedan **siete abiertos** y el 008 a medias, todos para la v0.0.12.
+> teclas: D-13, D-14 y D-15), el 004 (2026-11-23, el cursor: D-16), el 012 (2026-11-23, el
+> redimensionado: D-17) y el 010 (2026-11-23, mayúsculas: D-18). Quedan **seis abiertos** y el 008
+> a medias, todos para la v0.0.12.
 > La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
 >
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
@@ -57,7 +58,7 @@
 | [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0` | **abierto** · para v0.0.12 |
 | [GAP-ZYE-008](#gap-zye-008) | GAP | texto → número | ~~no hay forma de leer `"42"` como Int~~ — `#\|texto\|` lo hace; lo que falla es que `###"42"` y `##."42"` no dicen que existe | **retirado como incapacidad** · el error sin guía sigue abierto para v0.0.12 |
 | [BUG-ZYE-009](#bug-zye-009) | BUG | parser | ~~`lines$-[r1 + 1..r2]` y~~ `@ i:r1 + 1..r2 - 1` falla en los dos motores de Rust con *«ranges can only be used in for-each loops»*: el `..` toma por la izquierda sólo el último operando; zyjs lo acepta | **abierto** · para v0.0.12 |
-| [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII | **abierto** · para v0.0.12 |
+| [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | ~~no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII~~ | **corregido** · 2026-11-23, v0.0.12 (D-18) |
 | [BUG-ZYE-011](#bug-zye-011) | BUG | `zymbol-vm` | tras `(a, k) = v[1]` y `v[1]$~ otra`, la VM copia entero el array `a` en la primera edición; el tree-walker no copia nada | **abierto** · para v0.0.12 |
 | [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | ~~un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente~~ | **corregido** · 2026-11-23, v0.0.12 (D-17) |
 | [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **corregido** · 2026-10-30, v0.0.11 |
@@ -544,6 +545,15 @@ en el texto original.
 
 **Lo esperable:** una función de `std/` o un operador que convierta caso, con la regla de Unicode,
 y una versión que pliegue para comparar. Lo decide el autor.
+
+**CORREGIDO (2026-11-23, v0.0.12): un módulo nuevo, `std/text` (D-18).** `upper` y `lower` son las
+correspondencias completas de Unicode, sin idioma (`ß` → `SS`, sigma final), y `fold` es el plegado
+simple, punto a punto: **conserva la longitud**, como el apaño, así que una posición encontrada en el
+texto plegado sirve en el original. Es la variante que este hallazgo necesitaba para resaltar, y por
+eso `ß` no coincide con `ss`. Los cuatro motores dan lo mismo en todos los puntos de código:
+`web/tests/test_casemap.mjs` lo comprueba contra el binario de Rust, y
+`zyquality/corpus/stdlib/stdlib_text.zy` lo sujeta con golden. **Queda:** `fold` en `buffer.zy` sigue
+siendo el apaño ASCII; pasarlo a `tx::fold` es trabajo de la aplicación.
 
 ---
 

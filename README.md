@@ -188,7 +188,8 @@ showed it.
 
 What was **not** expected came from writing the editor: grapheme clusters (GAP-ZYE-007), text
 to number (GAP-ZYE-008, which the language could do all along), a range with arithmetic on its
-left end (BUG-ZYE-009), case conversion (GAP-ZYE-010), two costs that only `--count` shows
+left end (BUG-ZYE-009), case conversion (GAP-ZYE-010, corrected for v0.0.12 by `std/text`;
+the editor still folds ASCII only), two costs that only `--count` shows
 (BUG-ZYE-011, BUG-ZYE-014), the browser engine reading `"\r"` as `r` (BUG-ZYE-013, corrected
 for v0.0.11), and no
 way to show a screen at once, so that a redraw is seen while it is drawn (GAP-ZYE-015, corrected
@@ -283,7 +284,7 @@ The rest are ordinary Ctrl shortcuts: `Ctrl+Z` / `Ctrl+Y` undo / redo, `Ctrl+C` 
 rest, Esc), `Ctrl+S` save and `Ctrl+T` save as, `Ctrl+O` open (an empty name is a new buffer),
 `Ctrl+N` next buffer, `Ctrl+W` close, `Esc` clear the selection. **`Ctrl+G`** asks for a line
 number or one of the commands `next`, `prev`, `close`, `indent`, `unindent`, `case` (search
-ignores case, ASCII only: GAP-ZYE-010), `numbers` (the line-number margin) and `help`: every
+ignores case, ASCII only: GAP-ZYE-010, whose `std/text` the editor does not use yet), `numbers` (the line-number margin) and `help`: every
 Ctrl letter is taken, so what is rare lives behind one key. Word movement and backward search
 have no key left; they wait for Ctrl+arrow (DIS-ZYE-002).
 
