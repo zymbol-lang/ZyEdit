@@ -37,7 +37,7 @@ that says why the case in `zyquality/` exists.
 | [`keys/`](keys/) | DIS-ZYE-001, 002, 003 | pty | FIXED (2026-11-22; 003 with a remainder, see its entry) | moved: `zyquality/tui/keys_mods.zy` |
 | [`cursor/`](cursor/) | DIS-ZYE-004 | pty | FIXED (2026-11-23) | moved: `zyquality/tui/cursor_show.zy` |
 | [`replaced_tuple/`](replaced_tuple/) | BUG-ZYE-011 | `--count` | HOLDS (2026-10-27) | `zyquality/cost/` |
-| [`resize/`](resize/) | GAP-ZYE-012 | pty | HOLDS (2026-10-27) | `zyquality/tui/` |
+| [`resize/`](resize/) | GAP-ZYE-012 | pty | FIXED (2026-11-23) | moved: `zyquality/tui/resize_key.zy` |
 | [`string_cr/`](string_cr/) | BUG-ZYE-013 | three engines | FIXED (2026-10-30) | `zyquality/corpus/strings/cr_escape_in_text.zy` |
 | [`mid_array/`](mid_array/) | BUG-ZYE-014 | `--count` | HOLDS (2026-10-27) | `zyquality/cost/` |
 | [`frame/`](frame/) | GAP-ZYE-015 | pty | FIXED (2026-11-22) | `zyquality/tui/frame_newline.zy` |

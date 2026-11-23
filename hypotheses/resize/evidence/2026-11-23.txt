@@ -1,0 +1,11 @@
+# hypotheses/resize — evidence after D-17
+# date:    2026-11-23
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.12 (alpha))
+# commit:  interpreter 9603c9f + the uncommitted D-17 change (branch v0.0.12), release build with --features db
+# command: python3 hypotheses/resize/check.py
+# note:    from this date FIXED also needs the program to be woken by '⤢' (10530) and `>>?`
+#          to answer the new size, 12x60
+
+resize: zyvm, zytw agree; a program waiting in `<<|` is told that the window changed size
+  GAP-ZYE-012  FIXED
+exit status: 0

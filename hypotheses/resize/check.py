@@ -5,7 +5,9 @@ whether the program blocked in `<<|` hears of it.
     python3 hypotheses/resize/check.py
 
 ZYMBOL_BIN chooses the binary. The probe prints a line for every key it reads, so that
-line appearing after the resize, with no key sent, means the program was woken.
+line appearing after the resize, with no key sent, means the program was woken. Since D-17
+(2026-11-23) FIXED also needs what woke it to be `⤢` (U+2922, 10530) and `>>?` to answer
+the new size, 12x60.
 
 Exit status: 0 the program is told of the resize (fixed), 1 it hears nothing (the state
 on the day this was written), 2 the program could not be run, 3 the engines disagree.
@@ -49,7 +51,9 @@ def drive(args):
 
     started = read_for(1.5)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 12, 60, 0, 0))
-    heard = b"key " in read_for(0.6)     # the probe's own line, not an error message
+    after = read_for(0.6)
+    # The probe's own line, not an error message — and since D-17, the right one.
+    heard = (b"key 10530 size 12x60" in after) if b"key " in after else False
     try:
         os.kill(pid, signal.SIGKILL)
     except ProcessLookupError:

@@ -30,10 +30,10 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
-> **Al día (2026-11-23).** Seis de los quince están corregidos: el 013 (2026-10-30, v0.0.11), el
-> 015 (2026-11-22, v0.0.12, el fotograma), el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
-> teclas: D-13, D-14 y D-15) y el 004 (2026-11-23, v0.0.12, el cursor: D-16). Quedan **ocho
-> abiertos** y el 008 a medias, todos para la v0.0.12.
+> **Al día (2026-11-23).** Siete de los quince están corregidos: el 013 (2026-10-30, v0.0.11),
+> el 015 (2026-11-22, v0.0.12, el fotograma), el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
+> teclas: D-13, D-14 y D-15), el 004 (2026-11-23, el cursor: D-16) y el 012 (2026-11-23, el
+> redimensionado: D-17). Quedan **siete abiertos** y el 008 a medias, todos para la v0.0.12.
 > La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
 >
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
@@ -59,7 +59,7 @@
 | [BUG-ZYE-009](#bug-zye-009) | BUG | parser | ~~`lines$-[r1 + 1..r2]` y~~ `@ i:r1 + 1..r2 - 1` falla en los dos motores de Rust con *«ranges can only be used in for-each loops»*: el `..` toma por la izquierda sólo el último operando; zyjs lo acepta | **abierto** · para v0.0.12 |
 | [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII | **abierto** · para v0.0.12 |
 | [BUG-ZYE-011](#bug-zye-011) | BUG | `zymbol-vm` | tras `(a, k) = v[1]` y `v[1]$~ otra`, la VM copia entero el array `a` en la primera edición; el tree-walker no copia nada | **abierto** · para v0.0.12 |
-| [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente | **abierto** · para v0.0.12 |
+| [GAP-ZYE-012](#gap-zye-012) | GAP | `<<\|` / terminal | ~~un programa bloqueado en `<<\|` no se entera de que la ventana cambió de tamaño: no sale ningún valor ni señal hasta la tecla siguiente~~ | **corregido** · 2026-11-23, v0.0.12 (D-17) |
 | [BUG-ZYE-013](#bug-zye-013) | BUG | `zyjs` (lexer) | dentro de una cadena, `"\r"` se lee como la letra `r`; los dos motores de Rust, y el propio zyjs en un literal de carácter `'\r'`, dan el retorno de carro | **corregido** · 2026-10-30, v0.0.11 |
 | [BUG-ZYE-014](#bug-zye-014) | BUG | colecciones (los 2 motores de Rust) | insertar en una posición (`a$+[i] v`) y quitar un rango (`a$-[i..j]`) **cuestan el array entero** aunque tenga un solo dueño: el tree-walker copia sus n valores y la VM reserva n huecos; `a$-[i]` y `a[i]$~ v` cuestan uno | **abierto** · para v0.0.12 |
 | [GAP-ZYE-015](#gap-zye-015) | GAP | `>>\|` / salida | no hay **fotograma**: cada `>>~` llega al terminal por separado y ningún programa puede enseñar una pantalla entera de una vez, así que un repintado se ve mientras se dibuja (desde el 2026-10-27, una escritura por `>>~` y no cuatro) | **corregido** · 2026-11-22, v0.0.12: la 2 (D-09) |
@@ -597,6 +597,22 @@ por lo que `tests/run.sh` corre con `--timeout`.
 ya significa «sin tecla»), o que haya una forma de preguntar si cambió. Lo decide el autor.
 
 **Su «después»:** `hypotheses/resize/check.py` da `FIXED`, y `wait_key` vuelve a ser `<<| k`.
+
+**CORREGIDO (2026-11-23, v0.0.12): un glifo, `⤢` (D-17).** Cuando la ventana cambia de tamaño,
+`<<|` y `<<|?` devuelven `'⤢'` (U+2922) con `m = 0`, como las teclas con nombre de D-13. No es
+una tecla: es el aviso para volver a preguntar `>>?` y redibujar. Antes de leerlo, la pantalla
+ya tiene el tamaño nuevo: lo dibujado conserva su sitio y lo que no cabe se corta. El
+playground lo manda al cambiar el tamaño del panel, uno aunque lleguen varios sin leer. El
+guion de `--keys` gana `RESIZE filas cols`. Lo aceptado en contra: un «pulsa cualquier tecla»
+también avanza al redimensionar.
+
+`hypotheses/resize/check.py` da `FIXED` con los dos motores de Rust de acuerdo
+(`evidence/2026-11-23.txt`), y desde esa fecha exige además que lo que despierta al programa
+sea `⤢` y que `>>?` conteste el tamaño nuevo, 12x60. La pregunta vive ahora en
+`zyquality/tui/resize_key.zy` (pty real, dos cambios de tamaño sin ninguna tecla, con golden)
+y en `zyquality/corpus/output/redimensionar.zy` bajo `--keys`; los dos motores del navegador
+quedan atados a ese golden por `web/tests/test_keys.mjs`. **Queda:** `wait_key` en
+`zyedit.zy` sigue sondeando con `<<|?`. Volver a `<<| k` es trabajo de la aplicación.
 
 ---
 

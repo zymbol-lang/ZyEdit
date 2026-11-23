@@ -170,8 +170,9 @@ showed it.
   `>>~ (row, col)` with nothing to print shows the terminal's cursor there. ZyEdit still draws
   its own caret; it has not moved to the terminal's yet.
 - **Resizing** — confirmed on 2026-10-27 with a real pty (`hypotheses/resize/`): `>>?` answers
-  the new size, but a program waiting on `<<|` is not told (GAP-ZYE-012). ZyEdit polls with
-  `<<|?` meanwhile.
+  the new size, but a program waiting on `<<|` is not told (GAP-ZYE-012). Corrected for
+  v0.0.12 (2026-11-23, D-17): `<<|` is woken by `'⤢'`. ZyEdit still polls with `<<|?`; it
+  has not moved to `<<| k` yet.
 - **Bytes** — confirmed in part on 2026-10-26 (`tests/roundtrip.zy`): CRLF, mixed line
   endings, a missing final newline, a byte-order mark and trailing tabs and blank lines all
   come back byte for byte, in both engines, and an edited CRLF file is saved all CRLF
