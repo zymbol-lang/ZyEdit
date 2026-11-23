@@ -30,9 +30,10 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
-> **Al día (2026-11-22).** Dos de los quince están corregidos: el 013 (2026-10-30, v0.0.11) y el
-> 015 (2026-11-22, v0.0.12, el fotograma). Quedan **doce abiertos** y el 008 a medias, todos para la
-> v0.0.12. La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
+> **Al día (2026-11-22).** Cinco de los quince están corregidos: el 013 (2026-10-30, v0.0.11), el
+> 015 (2026-11-22, v0.0.12, el fotograma) y el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
+> teclas: D-13, D-14 y D-15). Quedan **nueve abiertos** y el 008 a medias, todos para la v0.0.12.
+> La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
 >
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
 > comprobación que da un veredicto por hallazgo (`HOLDS` o `FIXED`) y la respuesta guardada en
@@ -46,9 +47,9 @@
 
 | ID | Tipo | Módulo | Contexto | Estado |
 |----|------|--------|----------|--------|
-| [DIS-ZYE-001](#dis-zye-001) | DIS | entrada de teclado (los 2 motores con terminal) | Inicio, Fin, RePág, AvPág, Supr, F1–F12 y Shift+Tab llegan **todas como `0d0`**, el mismo valor con el que `<<\|?` dice «no hay tecla» | **abierto** · para v0.0.12 |
-| [DIS-ZYE-002](#dis-zye-002) | DIS | entrada de teclado | un modificador sobre una tecla que no es letra **se pierde**: Shift+→ y Ctrl+→ llegan como → | **abierto** · para v0.0.12 |
-| [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **abierto** · para v0.0.12 |
+| [DIS-ZYE-001](#dis-zye-001) | DIS | entrada de teclado (los 2 motores con terminal) | Inicio, Fin, RePág, AvPág, Supr, F1–F12 y Shift+Tab llegan **todas como `0d0`**, el mismo valor con el que `<<\|?` dice «no hay tecla» | **corregido** · 2026-11-22, v0.0.12: glifos (D-13) |
+| [DIS-ZYE-002](#dis-zye-002) | DIS | entrada de teclado | un modificador sobre una tecla que no es letra **se pierde**: Shift+→ y Ctrl+→ llegan como → | **corregido** · 2026-11-22, v0.0.12: `<<\| k, m` (D-14) |
+| [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **corregido con resto** · 2026-11-22, v0.0.12: `<<\| k, m` (D-14); Ctrl+/ sigue siendo `7` en un terminal |
 | [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca | **abierto** · para v0.0.12 |
 | [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · para v0.0.12 |
 | [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes | **abierto** · para v0.0.12 |
@@ -161,6 +162,25 @@ that stand in until v0.0.12»).
 `0d0`. Cómo se escribe ese valor lo decide el autor. Las flechas ya llegan como glifos
 (`↑ ↓ ← →`), y ese es el precedente más cercano dentro del propio lenguaje.
 
+**CORREGIDO (2026-11-22, v0.0.12): glifos, como las flechas (D-13).** En los cuatro motores y en
+`--keys`: Inicio `⇱`, Fin `⇲`, RePág `⇞`, AvPág `⇟`, Supr `⌦`, Shift+Tab `⇤` (con `m = 1`),
+F1–F12 `①`–`⑫`. El guion de `--keys` gana `HOME`, `END`, `PGUP`, `PGDN`, `DEL`, `BACKTAB` y
+`F1`…`F12`. La regla vive una sola vez para Rust, en `zymbol_common::keys`, y la usan el
+tree-walker, la VM y el guion. Antes, `map_key_code` estaba copiado en los dos motores. Para el
+navegador, la regla gemela está en `web/src/zymbol/keys.js`. Una tecla sin nombre en el
+lenguaje (Insert, una tecla multimedia) sigue llegando como `'\0'`.
+
+**Su «después»:** `hypotheses/keys/check.py` da `FIXED` en los tres, con los dos motores de
+Rust de acuerdo (`evidence/2026-11-22.txt`). Desde esa fecha el programa lee `<<| t, m` y cada
+tecla se juzga por el par (código, m). Antes no había forma de leer el modificador, y D-14 es
+la que la dio. La pregunta vive ahora también en `zyquality/tui/keys_mods.zy`, con golden, y el
+guion de `--keys` en `zyquality/corpus/output/teclas_modificadores.zy`. Los dos motores del
+navegador quedan atados a ese mismo golden por `web/tests/test_keys.mjs`, dentro de la puerta.
+
+**Lo que queda:** ZyEdit todavía usa sus teclas Ctrl provisionales (Ctrl+D, Ctrl+U, Ctrl+E,
+Ctrl+P, Ctrl+L). Cambiarlas por Supr, Inicio, Fin, RePág y AvPág es trabajo de la aplicación,
+no del lenguaje.
+
 ---
 
 ## DIS-ZYE-002
@@ -187,6 +207,24 @@ cursor por palabras y buscar hacia atrás no tienen tecla, y esperan a Ctrl+flec
 eso: las flechas son cuatro, los modificadores tres, y sus combinaciones no caben en una tabla
 de glifos razonable. La forma de la respuesta, incluido si `<<|` debe devolver algo más que un
 carácter, es una decisión de diseño del autor.
+
+**CORREGIDO (2026-11-22, v0.0.12): una segunda variable, `<<| k, m` (D-14).** También `<<|? k, m`.
+`m` es un Int: Shift = 1, Alt = 2, Ctrl = 4, sumados. Shift+→ llega como `→` con `m = 1`, y Ctrl+→
+como `→` con `m = 4`. `<<| k` no cambia. Shift no se informa sobre texto (D-15): una `'A'` llega con
+`m = 0`, con Bloq Mayús o sin él, porque el carácter ya lo dice, y Ctrl+Alt sobre un carácter
+imprimible es AltGr, también con `m = 0`. La VM lo ejecuta con una instrucción nueva,
+`ReadKeyMods`, puesta delante de `Halt` para no renumerar ninguna otra. El guion de `--keys`
+gana los prefijos `SHIFT+`, `ALT+` y `CTRL+`, en cualquier orden y sobre cualquier tecla.
+
+**Su «después»:** `hypotheses/keys/check.py` da `FIXED` en los tres, con los dos motores de
+Rust de acuerdo (`evidence/2026-11-22.txt`). Desde esa fecha el programa lee `<<| t, m` y cada
+tecla se juzga por el par (código, m). Antes no había forma de leer el modificador, y D-14 es
+la que la dio. La pregunta vive ahora también en `zyquality/tui/keys_mods.zy`, con golden, y el
+guion de `--keys` en `zyquality/corpus/output/teclas_modificadores.zy`. Los dos motores del
+navegador quedan atados a ese mismo golden por `web/tests/test_keys.mjs`, dentro de la puerta.
+
+**Lo que queda:** ZyEdit todavía selecciona con Ctrl+B y no salta por palabras. Pasar a
+Shift+flecha y Ctrl+flecha es trabajo de la aplicación.
 
 ---
 
@@ -216,6 +254,31 @@ manda Ctrl+7 en muchos terminales. Que llegue como un `7` imprimible sí es de Z
 **Lo esperable**, como mínimo, es que una combinación con modificador no llegue nunca como un
 carácter imprimible que el programa vaya a insertar. Lo más probable es que el arreglo sea el
 mismo que el de DIS-ZYE-002.
+
+**CORREGIDO CON RESTO (2026-11-22, v0.0.12): el mismo arreglo que DIS-ZYE-002 (D-14).** Con
+`<<| k, m`, las tres llegan con su modificador: Ctrl+/ como `7` con `m = 4`, Ctrl+Espacio como
+espacio con `m = 4` y Alt+x como `x` con `m = 2`. Un programa que pregunta por `m` ya no las
+confunde con texto.
+
+**Su «después»:** `hypotheses/keys/check.py` da `FIXED` en los tres, con los dos motores de
+Rust de acuerdo (`evidence/2026-11-22.txt`). Desde esa fecha el programa lee `<<| t, m` y cada
+tecla se juzga por el par (código, m). Antes no había forma de leer el modificador, y D-14 es
+la que la dio. La pregunta vive ahora también en `zyquality/tui/keys_mods.zy`, con golden, y el
+guion de `--keys` en `zyquality/corpus/output/teclas_modificadores.zy`. Los dos motores del
+navegador quedan atados a ese mismo golden por `web/tests/test_keys.mjs`, dentro de la puerta.
+
+**Lo que queda**, y por eso es «con resto»:
+
+1. **Con `<<| k` a secas siguen llegando como `7`, espacio y `x`.** D-14 lo decidió así:
+   `<<| k` no cambia. Un editor que inserta todo carácter imprimible tiene que leer `m` y
+   descartar lo que lleve Ctrl o Alt.
+2. **Ctrl+/ es `7` en un terminal y `/` en el navegador**, en los dos casos con `m = 4`. El byte
+   `1f` lo mandan igual Ctrl+/, Ctrl+_ y Ctrl+7, y crossterm lo lee como Ctrl+7. El navegador sí
+   sabe qué tecla se pulsó. Lo mismo pasa con `1c`–`1e` (Ctrl+\\, Ctrl+], Ctrl+^, que llegan como
+   `4`, `5` y `6`). La puerta no lo ve, porque ningún caso del corpus pasa por los dos lados a la
+   vez. Arreglarlo en un terminal pide el protocolo de teclado de kitty
+   (`DISAMBIGUATE_ESCAPE_CODES` en crossterm), que sólo entienden algunos terminales. Es una
+   decisión del autor y no se ha tomado.
 
 ---
 

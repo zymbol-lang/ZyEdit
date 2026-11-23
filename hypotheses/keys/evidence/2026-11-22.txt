@@ -1,0 +1,32 @@
+# hypotheses/keys — evidence after D-13, D-14 and D-15
+# date:    2026-11-22
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.12 (alpha))
+# commit:  interpreter adb960b + the uncommitted D-13/D-14 change (branch v0.0.12), release build with --features db
+# command: python3 hypotheses/keys/check.py --table
+# note:    from this date the program reads `<<| t, m` and each key is judged as (code, m)
+
+  Ctrl+Z       1a                   -> 26     m=4
+  Ctrl+S       13                   -> 19     m=4
+  Ctrl+C       03                   -> 3      m=4
+  Ctrl+Q       11                   -> 17     m=4
+  Ctrl+V       16                   -> 22     m=4
+  Ctrl+H       08                   -> 8      m=4
+  Ctrl+I       09                   -> 9      m=0
+  Home         1b 5b 48             -> 8689   m=0
+  End          1b 5b 46             -> 8690   m=0
+  Delete       1b 5b 33 7e          -> 8998   m=0
+  PageUp       1b 5b 35 7e          -> 8670   m=0
+  PageDown     1b 5b 36 7e          -> 8671   m=0
+  F1           1b 4f 50             -> 9312   m=0
+  Shift+Tab    1b 5b 5a             -> 8676   m=1
+  Shift+Right  1b 5b 31 3b 32 43    -> 8594   m=1
+  Ctrl+Right   1b 5b 31 3b 35 43    -> 8594   m=4
+  Ctrl+/       1f                   -> 55     m=4
+  Ctrl+Space   00                   -> 32     m=4
+  Alt+x        1b 78                -> 120    m=2
+
+keys: 19 keys through a pty, zyvm, zytw agree
+  DIS-ZYE-001  FIXED
+  DIS-ZYE-002  FIXED
+  DIS-ZYE-003  FIXED
+exit 0

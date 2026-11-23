@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Ask both engines what `<<|` hands back for each key, through a real pty, and
-say whether each hypothesis still holds.
+"""Ask both engines what `<<| t, m` hands back for each key, through a real
+pty, and say whether each hypothesis still holds.
 
     python3 hypotheses/keys/check.py            # verdicts
     python3 hypotheses/keys/check.py --table    # and the value of every key
@@ -20,7 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROGRAM = os.path.join(HERE, "keys.zy")
 ENGINES = [("zyvm", ["run"]), ("zytw", ["run", "--tw"])]
 
-# (name, bytes sent, what it must keep being — None if it is under question)
+# (name, bytes sent, the code it must keep being — None if it is under question)
 KEYS = [
     ("Ctrl+Z",      b"\x1a",          26),
     ("Ctrl+S",      b"\x13",          19),
@@ -43,7 +43,7 @@ KEYS = [
     ("Alt+x",       b"\x1bx",        None),
 ]
 
-RIGHT = 0x2192          # what a plain → arrives as
+RIGHT = (0x2192, 0)     # what a plain → arrives as
 
 
 def drive(args):
@@ -83,7 +83,7 @@ def drive(args):
     except ChildProcessError:
         pass
     text = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", out.decode("utf-8", "replace"))
-    return [int(n) for n in re.findall(r"\d+", text)]
+    return [(int(c), int(m)) for c, m in re.findall(r"(\d+):(\d+)", text)]
 
 
 def main():
@@ -104,13 +104,14 @@ def main():
 
     if "--table" in sys.argv:
         for name, sent, _ in KEYS:
-            print(f"  {name:12} {sent.hex(' '):20} -> {got[name]}")
+            code, m = got[name]
+            print(f"  {name:12} {sent.hex(' '):20} -> {code:<6} m={m}")
         print()
 
-    regressions = [n for n, _, keep in KEYS if keep is not None and got[n] != keep]
+    regressions = [n for n, _, keep in KEYS if keep is not None and got[n][0] != keep]
     nav = ["Home", "End", "Delete", "PageUp", "PageDown", "F1", "Shift+Tab"]
-    others = [got[n] for n, _, _ in KEYS if n not in nav]
-    nav_codes = [got[n] for n in nav]
+    others = [got[n][0] for n, _, _ in KEYS if n not in nav]
+    nav_codes = [got[n][0] for n in nav]
     verdicts = {
         # Each navigation key arrives as a value of its own: not 0d0 (which is
         # also `<<|?`'s "no key"), not another navigation key's, not any other key's.
@@ -118,13 +119,14 @@ def main():
                        or len(set(nav_codes)) != len(nav_codes)
                        or bool(set(nav_codes) & set(others)),
         # A modifier on an arrow is not lost: neither arrives as a plain →, and
-        # Shift and Ctrl are told apart.
+        # Shift and Ctrl are told apart — by the pair (code, m).
         "DIS-ZYE-002": RIGHT in (got["Shift+Right"], got["Ctrl+Right"])
                        or got["Shift+Right"] == got["Ctrl+Right"],
-        # A combination never arrives as the printable key it would type.
-        "DIS-ZYE-003": got["Ctrl+/"] in (ord("7"), ord("/"))
-                       or got["Ctrl+Space"] == ord(" ")
-                       or got["Alt+x"] == ord("x"),
+        # A combination never arrives as the printable key it would type: the
+        # pair (code, m) is not that key's, unmodified.
+        "DIS-ZYE-003": got["Ctrl+/"] in ((ord("7"), 0), (ord("/"), 0))
+                       or got["Ctrl+Space"] == (ord(" "), 0)
+                       or got["Alt+x"] == (ord("x"), 0),
     }
     engines = ", ".join(name for name, _ in ENGINES)
     print(f"keys: {len(KEYS)} keys through a pty, {engines} agree")

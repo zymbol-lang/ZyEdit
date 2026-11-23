@@ -160,6 +160,11 @@ showed it.
 
   Ctrl+*letter* is fine: Ctrl+Z, Ctrl+S, Ctrl+C, Ctrl+Q and Ctrl+V all arrive as their
   control characters.
+
+  All three are corrected for v0.0.12 (2026-11-22, decisions D-13 to D-15): the keys arrive as
+  glyphs (`⇱ ⇲ ⇞ ⇟ ⌦ ⇤`, `①`–`⑫`), and `<<| k, m` gives the modifiers as an Int. DIS-ZYE-003
+  keeps a remainder: in a terminal Ctrl+/ still arrives as `7` (with `m = 4`). ZyEdit has not
+  moved to the new keys yet.
 - **The caret** — confirmed on 2026-10-20 (`hypotheses/cursor/`): `>>|` hides the terminal's
   cursor and nothing shows it (DIS-ZYE-004). ZyEdit draws its own caret meanwhile.
 - **Resizing** — confirmed on 2026-10-27 with a real pty (`hypotheses/resize/`): `>>?` answers
@@ -263,8 +268,9 @@ at the end of [HALLAZGOS.md](HALLAZGOS.md) so that nobody files them as findings
 
 ### The keys that stand in until v0.0.12
 
-The `Today` column above says what `<<|` delivers. Where it delivers nothing, ZyEdit uses a
-Ctrl key of its own, and each of them is a workaround that DIS-ZYE-001/002 removes:
+The `Today` column above says what `<<|` delivered in v0.0.11. Where it delivered nothing,
+ZyEdit uses a Ctrl key of its own, and each of them is a workaround that DIS-ZYE-001/002 removes.
+The language now delivers those keys (v0.0.12), and ZyEdit still uses these:
 `Ctrl+D` delete forward, `Ctrl+U` / `Ctrl+E` start / end of the line, `Ctrl+P` / `Ctrl+L`
 page up / down, and `Ctrl+B` to start and stop selecting (the arrows then extend the
 selection, in place of Shift+arrows).

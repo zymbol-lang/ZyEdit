@@ -1,13 +1,16 @@
-// What `<<|` hands back for each key a GUI-style editor needs.
+// What `<<| t, m` hands back for each key a GUI-style editor needs.
 //
 // Hypotheses DIS-ZYE-001, 002 and 003 (HALLAZGOS.md). Reads nineteen keys and
-// prints the code point of each, separated by spaces: the shape of
-// zyquality/tui/keys_control.zy, so the case can move there once the findings
-// are fixed. check.py sends the keys through a real pty — `--keys` hands the
+// prints the code point of each and its modifiers, `code:m`, separated by
+// spaces. check.py sends the keys through a real pty — `--keys` hands the
 // program keys that are already decoded, and the decoding is what is asked.
+//
+// Until 2026-11-22 this read `<<| t`, with no modifiers: there was no form to
+// read them with. D-14 answered DIS-ZYE-002 and 003 with one (`<<| t, m`), so
+// the question is now asked in it; the code alone is still judged for 001.
 >>| {
     @ _i:1..19 {
-        <<| t
-        >> ##!t " "
+        <<| t, m
+        >> ##!t ":" m " "
     }
 }

@@ -34,7 +34,7 @@ that says why the case in `zyquality/` exists.
 
 | Directory | Findings | How | State | Moves to |
 |---|---|---|---|---|
-| [`keys/`](keys/) | DIS-ZYE-001, 002, 003 | pty | HOLDS (2026-10-20) | `zyquality/tui/`, beside `keys_control.zy` |
+| [`keys/`](keys/) | DIS-ZYE-001, 002, 003 | pty | FIXED (2026-11-22; 003 with a remainder, see its entry) | moved: `zyquality/tui/keys_mods.zy` |
 | [`cursor/`](cursor/) | DIS-ZYE-004 | pty | HOLDS (2026-10-20) | `zyquality/tui/` |
 | [`replaced_tuple/`](replaced_tuple/) | BUG-ZYE-011 | `--count` | HOLDS (2026-10-27) | `zyquality/cost/` |
 | [`resize/`](resize/) | GAP-ZYE-012 | pty | HOLDS (2026-10-27) | `zyquality/tui/` |
