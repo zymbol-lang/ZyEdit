@@ -166,7 +166,9 @@ showed it.
   keeps a remainder: in a terminal Ctrl+/ still arrives as `7` (with `m = 4`). ZyEdit has not
   moved to the new keys yet.
 - **The caret** — confirmed on 2026-10-20 (`hypotheses/cursor/`): `>>|` hides the terminal's
-  cursor and nothing shows it (DIS-ZYE-004). ZyEdit draws its own caret meanwhile.
+  cursor and nothing shows it (DIS-ZYE-004). Corrected for v0.0.12 (2026-11-23, D-16):
+  `>>~ (row, col)` with nothing to print shows the terminal's cursor there. ZyEdit still draws
+  its own caret; it has not moved to the terminal's yet.
 - **Resizing** — confirmed on 2026-10-27 with a real pty (`hypotheses/resize/`): `>>?` answers
   the new size, but a program waiting on `<<|` is not told (GAP-ZYE-012). ZyEdit polls with
   `<<|?` meanwhile.

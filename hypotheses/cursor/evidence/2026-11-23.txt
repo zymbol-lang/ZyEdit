@@ -1,0 +1,11 @@
+# hypotheses/cursor — evidence after D-16
+# date:    2026-11-23
+# binary:  interpreter/target/release/zymbol (zymbol 0.0.12 (alpha))
+# commit:  interpreter c74bd1b + the uncommitted D-16 change (branch v0.0.12), release build with --features db
+# command: python3 hypotheses/cursor/check.py
+# note:    from this date cursor.zy writes `>>~ (1, 6)`, and FIXED also needs the last move
+#          before the cursor is shown to be row 1, column 6
+
+cursor: zyvm, zytw agree; inside `>>|` the cursor is hidden and shown at row 1, column 6
+  DIS-ZYE-004  FIXED
+exit status: 0

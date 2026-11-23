@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Read what each engine writes to a real pty while cursor.zy runs, and say
-whether the terminal's cursor is ever shown inside the `>>|` block.
+whether the terminal's cursor is shown inside the `>>|` block — and, since
+D-16, whether the frame the program waits on leaves it where it was asked for:
+row 1, column 6, after "hello".
 
     python3 hypotheses/cursor/check.py
 
@@ -15,7 +17,7 @@ engines disagree.
 
 This file is Python, and that is a finding of its own: DIS-ZYE-005.
 """
-import fcntl, os, pty, select, signal, struct, sys, termios, time
+import fcntl, os, pty, re, select, signal, struct, sys, termios, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROGRAM = os.path.join(HERE, "cursor.zy")
@@ -69,19 +71,27 @@ def main():
             print(f"{name}: the block was not entered and left: {out!r}")
             return 2
         block = out[out.index(ENTER):out.rindex(LEAVE)]
-        answers[name] = (HIDE in block, SHOW in block)
+        shown = SHOW in block
+        # Where it is shown: the last move before the last show.
+        at = None
+        if shown:
+            before = block[:block.rindex(SHOW)]
+            moves = re.findall(rb"\x1b\[(\d+);(\d+)H", before)
+            at = tuple(int(n) for n in moves[-1]) if moves else None
+        answers[name] = (HIDE in block, shown, at)
     if len(set(answers.values())) != 1:
-        for name, (hidden, shown) in answers.items():
-            print(f"{name}: hidden {hidden}, shown {shown}")
+        for name, (hidden, shown, at) in answers.items():
+            print(f"{name}: hidden {hidden}, shown {shown} at {at}")
         print("the engines disagree")
         return 3
-    hidden, shown = next(iter(answers.values()))
+    hidden, shown, at = next(iter(answers.values()))
     engines = ", ".join(name for name, _ in ENGINES)
     print(f"cursor: {engines} agree; inside `>>|` the cursor is "
           f"{'hidden' if hidden else 'not hidden'} and "
-          f"{'shown' if shown else 'never shown'}")
-    print(f"  DIS-ZYE-004  {'FIXED' if shown else 'HOLDS'}")
-    return 0 if shown else 1
+          f"{f'shown at row {at[0]}, column {at[1]}' if shown and at else ('shown' if shown else 'never shown')}")
+    fixed = shown and at == (1, 6)
+    print(f"  DIS-ZYE-004  {'FIXED' if fixed else 'HOLDS'}")
+    return 0 if fixed else 1
 
 
 if __name__ == "__main__":

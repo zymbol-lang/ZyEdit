@@ -30,9 +30,10 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
-> **Al día (2026-11-22).** Cinco de los quince están corregidos: el 013 (2026-10-30, v0.0.11), el
-> 015 (2026-11-22, v0.0.12, el fotograma) y el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
-> teclas: D-13, D-14 y D-15). Quedan **nueve abiertos** y el 008 a medias, todos para la v0.0.12.
+> **Al día (2026-11-23).** Seis de los quince están corregidos: el 013 (2026-10-30, v0.0.11), el
+> 015 (2026-11-22, v0.0.12, el fotograma), el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
+> teclas: D-13, D-14 y D-15) y el 004 (2026-11-23, v0.0.12, el cursor: D-16). Quedan **ocho
+> abiertos** y el 008 a medias, todos para la v0.0.12.
 > La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
 >
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
@@ -50,7 +51,7 @@
 | [DIS-ZYE-001](#dis-zye-001) | DIS | entrada de teclado (los 2 motores con terminal) | Inicio, Fin, RePág, AvPág, Supr, F1–F12 y Shift+Tab llegan **todas como `0d0`**, el mismo valor con el que `<<\|?` dice «no hay tecla» | **corregido** · 2026-11-22, v0.0.12: glifos (D-13) |
 | [DIS-ZYE-002](#dis-zye-002) | DIS | entrada de teclado | un modificador sobre una tecla que no es letra **se pierde**: Shift+→ y Ctrl+→ llegan como → | **corregido** · 2026-11-22, v0.0.12: `<<\| k, m` (D-14) |
 | [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **corregido con resto** · 2026-11-22, v0.0.12: `<<\| k, m` (D-14); Ctrl+/ sigue siendo `7` en un terminal |
-| [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca | **abierto** · para v0.0.12 |
+| [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | ~~dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca~~ | **corregido** · 2026-11-23, v0.0.12 (D-16) |
 | [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · para v0.0.12 |
 | [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes | **abierto** · para v0.0.12 |
 | [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0` | **abierto** · para v0.0.12 |
@@ -311,6 +312,25 @@ invertidos el clúster que hay bajo el cursor, o un espacio al final de la líne
 `tests/pty/check.py` comprueba en un terminal de verdad que se dibuja así.
 
 **Lo esperable** sería poder decir, dentro de `>>|`, «muestra el cursor aquí».
+
+**CORREGIDO (2026-11-23, v0.0.12): `>>~ (fila, col)` sin nada que imprimir (D-16).** Muestra el
+cursor del terminal en ese sitio, y `>>~ (0, 0)` lo oculta. `>>|` sigue empezando con él oculto,
+que es lo que quiere un juego. El cursor se queda donde se puso hasta que el programa lo mueve u
+oculta: cada fotograma termina con él devuelto a ese sitio aunque se haya dibujado en otro, y
+`>>!` no lo oculta. Es el cursor del propio terminal, así que parpadea, tiene la forma que el
+usuario eligió y un lector de pantalla lo sigue. Sólo acepta una posición (`>>~ (1, 6, 1)` es
+error de sintaxis), una posición fuera de la numeración es `##Range`, y fuera de `>>|` es error.
+En los cuatro motores; la VM lo ejecuta con una instrucción nueva, `ShowCursor`, y el playground
+pinta un bloque que parpadea sobre la celda. En `--keys`, un fotograma con el cursor visible
+termina con una línea `[cursor f,c]`.
+
+**Su «después»:** `hypotheses/cursor/check.py` da `FIXED`, con los dos motores de Rust de
+acuerdo (`evidence/2026-11-23.txt`). Desde esa fecha `cursor.zy` escribe `>>~ (1, 6)` donde
+estaba el comentario, y la comprobación exige además que el último movimiento antes de mostrar
+el cursor lleve a la fila 1, columna 6. La pregunta vive ahora en `zyquality/tui/cursor_show.zy`,
+con golden de los bytes, y en `zyquality/corpus/output/cursor_pantalla.zy` bajo `--keys`. Los
+dos motores del navegador quedan atados a ese golden por `web/tests/test_keys.mjs`. ZyEdit
+todavía pinta su propio caret: pasarse al cursor del terminal es trabajo de la aplicación.
 
 ---
 
