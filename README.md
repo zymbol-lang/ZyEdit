@@ -186,7 +186,8 @@ showed it.
   to it and read what it draws (DIS-ZYE-005). That is the same capability stage 5 needs, and
   most of what stage 4 needs.
 
-What was **not** expected came from writing the editor: grapheme clusters (GAP-ZYE-007), text
+What was **not** expected came from writing the editor: grapheme clusters (GAP-ZYE-007, corrected for
+v0.0.12 by `tx::graphemes`; the editor still approximates), text
 to number (GAP-ZYE-008, which the language could do all along), a range with arithmetic on its
 left end (BUG-ZYE-009), case conversion (GAP-ZYE-010, corrected for v0.0.12 by `std/text`;
 the editor still folds ASCII only), two costs that only `--count` shows

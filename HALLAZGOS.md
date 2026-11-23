@@ -30,11 +30,11 @@
 > lenguaje no llega, ZyEdit usa un apaño declarado en la ficha (teclas Ctrl provisionales para
 > 001 y 002, caret dibujado para 004, sondeo para 012…).
 >
-> **Al día (2026-11-23).** Ocho de los quince están corregidos: el 013 (2026-10-30, v0.0.11),
+> **Al día (2026-11-23).** Nueve de los quince están corregidos: el 013 (2026-10-30, v0.0.11),
 > el 015 (2026-11-22, v0.0.12, el fotograma), el 001, el 002 y el 003 (2026-11-22, v0.0.12, las
 > teclas: D-13, D-14 y D-15), el 004 (2026-11-23, el cursor: D-16), el 012 (2026-11-23, el
-> redimensionado: D-17) y el 010 (2026-11-23, mayúsculas: D-18). Quedan **seis abiertos** y el 008
-> a medias, todos para la v0.0.12.
+> redimensionado: D-17), el 010 (2026-11-23, mayúsculas: D-18) y el 007 (2026-11-23, grafemas:
+> D-19). Quedan **cinco abiertos** y el 008 a medias, todos para la v0.0.12.
 > La tabla de abajo es el estado vivo; la frase anterior es la de su fecha.
 >
 > **La evidencia vive en [`hypotheses/`](hypotheses/)**: un programa por pregunta, una
@@ -55,7 +55,7 @@
 | [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | ~~dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca~~ | **corregido** · 2026-11-23, v0.0.12 (D-16) |
 | [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · para v0.0.12 |
 | [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes | **abierto** · para v0.0.12 |
-| [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0` | **abierto** · para v0.0.12 |
+| [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | ~~el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0`~~ | **corregido** · 2026-11-23, v0.0.12 (D-19) |
 | [GAP-ZYE-008](#gap-zye-008) | GAP | texto → número | ~~no hay forma de leer `"42"` como Int~~ — `#\|texto\|` lo hace; lo que falla es que `###"42"` y `##."42"` no dicen que existe | **retirado como incapacidad** · el error sin guía sigue abierto para v0.0.12 |
 | [BUG-ZYE-009](#bug-zye-009) | BUG | parser | ~~`lines$-[r1 + 1..r2]` y~~ `@ i:r1 + 1..r2 - 1` falla en los dos motores de Rust con *«ranges can only be used in for-each loops»*: el `..` toma por la izquierda sólo el último operando; zyjs lo acepta | **abierto** · para v0.0.12 |
 | [GAP-ZYE-010](#gap-zye-010) | GAP | cadenas | ~~no se encuentra conversión de mayúsculas a minúsculas (ni al revés): buscar sin distinguirlas exige una tabla propia, y sólo ASCII~~ | **corregido** · 2026-11-23, v0.0.12 (D-18) |
@@ -440,6 +440,18 @@ función de `std/term` o una variante de `$#` y de `$[..]`). Lo decide el autor;
 
 **Su «después»:** `continues` desaparece de `buffer.zy`, y los mismos casos de `tests/buffer.zy`
 más uno de banderas y otro de tono de piel dan el mismo golden.
+
+**CORREGIDO (2026-11-23, v0.0.12): `tx::graphemes(s)` en `std/text` (D-19).** Corta un texto en sus
+clústeres de grafemas extendidos (UAX #29) y los da como un Array de Strings, uno en cada elemento:
+contar es `$#` del array, el clúster i es `[i]`, y mover o borrar es operar sobre sus elementos. El
+`Char` sigue siendo un punto de código. Los motores Rust cortan con `unicode-segmentation` (Unicode
+17), el mismo crate con el que mide `std/term`; los del navegador, con tablas generadas de esa misma
+versión, que pasan los 766 casos de `GraphemeBreakTest.txt`, y `web/tests/test_graphemes.mjs` los
+compara con el binario Rust en 4 000 textos. La pregunta vive en
+`zyquality/corpus/stdlib/stdlib_text_graphemes.zy`, con banderas, tono de piel, jamo y un conjunto
+devanagari. **Queda:** `continues` sigue en `buffer.zy`; cambiarlo por `tx::graphemes` es trabajo de
+la aplicación. Y al medir esos clústeres salió **ZYJS-075**: en el navegador, `t::width` de una
+familia con ZWJ da 6 columnas y no 2 (`ZyDDT/HALLAZGOS/zyjs.md`).
 
 ---
 
