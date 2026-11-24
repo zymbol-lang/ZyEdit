@@ -2,7 +2,7 @@
 // (13); the browser engine gives the letter r (114). The same escape in a Char literal
 // gives 13 in all three.
 s = "a\rb"
->> s$# " " ##!s[2] ¶
+>> s$# " " 0d|s[2]| ¶
 c = '\r'
->> ##!c ¶
+>> 0d|c| ¶
 >> ("x\r" $? '\r') ¶
