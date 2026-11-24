@@ -54,7 +54,7 @@
 | [DIS-ZYE-003](#dis-zye-003) | DIS | entrada de teclado | tres combinaciones llegan **disfrazadas de una tecla imprimible**: Ctrl+/ como `7`, Ctrl+Espacio como espacio, Alt+x como `x` | **corregido con resto** · 2026-11-22, v0.0.12: `<<\| k, m` (D-14); Ctrl+/ sigue siendo `7` en un terminal |
 | [DIS-ZYE-004](#dis-zye-004) | DIS | `>>\|` | ~~dentro de `>>\|` el cursor del terminal está **oculto**, y nada en el lenguaje lo muestra ni lo coloca~~ | **corregido** · 2026-11-23, v0.0.12 (D-16) |
 | [DIS-ZYE-005](#dis-zye-005) | DIS | procesos / el lenguaje | las comprobaciones de las hipótesis **no se pueden escribir en Zymbol**: ningún programa puede arrancar otro en un terminal, mandarle teclas y leer lo que dibuja | **abierto** · para v0.0.12 |
-| [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes | **abierto** · para v0.0.12 |
+| [GAP-ZYE-006](#gap-zye-006) | GAP | `std/io` | ~~un fichero que no es UTF-8 válido **no se puede abrir**: `io::read` devuelve `##IO(stream did not contain valid UTF-8)` y no hay lectura de bytes~~ | **corregido con resto** · 2026-11-24, v0.0.12 (D-22) |
 | [GAP-ZYE-007](#gap-zye-007) | GAP | cadenas / `std/term` | ~~el lenguaje no segmenta en **clústeres de grafemas**: un `Char` es un punto de código, y el editor tiene que aproximar el clúster a mano con `t::width(c) == 0`~~ | **corregido** · 2026-11-23, v0.0.12 (D-19) |
 | [GAP-ZYE-008](#gap-zye-008) | GAP | texto → número | ~~no hay forma de leer `"42"` como Int~~ — `#\|texto\|` lo hace; lo que falla es que `###"42"` y `##."42"` no dicen que existe | **retirado como incapacidad** · el error sin guía sigue abierto para v0.0.12 |
 | [BUG-ZYE-009](#bug-zye-009) | BUG | parser | ~~`lines$-[r1 + 1..r2]` y~~ `@ i:r1 + 1..r2 - 1` falla en los dos motores de Rust con *«ranges can only be used in for-each loops»*: el `..` toma por la izquierda sólo el último operando; zyjs lo acepta | **abierto** · para v0.0.12 |
@@ -389,6 +389,18 @@ de Python.
 ---
 
 ## GAP-ZYE-006
+
+**CORREGIDO CON RESTO (2026-11-24, v0.0.12): un byte es un `Char` de `0x00` a `0xFF` (D-22).** Al estilo
+de ZyBF, que resolvió así su cinta (GAP-BF-001, GLB-109): el lenguaje ya escribía un byte como el carácter
+de su código (`0x01`, `##'n`, `##!c`), así que no hace falta un tipo nuevo. `io::read_bytes(ruta)` da un
+String con un carácter por byte y `io::write_bytes(ruta, bytes)` escribe cada uno de vuelta como ese byte:
+el viaje de vuelta devuelve el fichero como era. Un carácter mayor que `0xFF` es `##Range` y el fichero no
+se toca. `io::read` sigue fallando cerrado, como pedía este hallazgo. Los cuatro motores dan lo mismo,
+también el sistema de ficheros por ejecución del playground: `zyquality/corpus/stdlib/stdlib_io_bytes.zy`
+(los 256 bytes de ida y vuelta, `bad \xff\xfe utf8`, la `é` como `C3 A9`) y
+`corpus/errors/runtime/io_bytes_not_a_byte.zy`. **Queda:** ZyEdit todavía no lo usa: sigue marcando ese
+fichero como no guardable. Abrirlo con `io::read_bytes` y decidir cómo se muestran los bytes que no son
+UTF-8 es trabajo de la aplicación.
 
 **Un fichero que no es UTF-8 válido no se puede abrir, ni leer como bytes.**
 
