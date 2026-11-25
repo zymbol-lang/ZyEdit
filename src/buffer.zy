@@ -60,8 +60,8 @@
     // Does the Char at 1-based position i continue the cluster that holds Char i-1?
     continues(line, i) {
         ? i < 2 { <~ #0 }
-        ? 0d|line[i]| < 32 { <~ #0 }          // a tab or a carriage return is a cluster of its own
-        ? 0d|line[i - 1]| == 8205 { <~ #1 }
+        ? #|line[i]| < 32 { <~ #0 }          // a tab or a carriage return is a cluster of its own
+        ? #|line[i - 1]| == 8205 { <~ #1 }
         <~ t::width(line[i]) == 0
     }
 
@@ -206,15 +206,15 @@
         ? !has_upper(text) { <~ text }
         out = ""
         @ ch:text {
-            n = 0d|ch|
-            ? n >= 65 && n <= 90 { out = out $++ 0d|n + 32| } _ { out = out $++ ch }
+            n = #|ch|
+            ? n >= 65 && n <= 90 { out = out $++ |n + 32| } _ { out = out $++ ch }
         }
         <~ out
     }
 
     has_upper(text) {
         @ ch:text {
-            n = 0d|ch|
+            n = #|ch|
             ? n >= 65 && n <= 90 { <~ #1 }
         }
         <~ #0

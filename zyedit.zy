@@ -189,7 +189,7 @@ prompt(label, init) {
         ? k == '\n' { <~ (#1, text) }
         _? k == 0d27 { <~ (#0, "") }
         _? k == 0d127 { text = b::before(text, text$# - 1) }
-        _? !((0d|k| < 32) || (0d|k| == 127)) { text = text k }
+        _? !((#|k| < 32) || (#|k| == 127)) { text = text k }
     }
 }
 
@@ -593,7 +593,7 @@ shown = []              // what render drew on each screen row (render explains)
                 col = col + 4
                 ac = ac + 4
             }
-            _? k == '\n' || k == 0d9 || !((0d|k| < 32) || (0d|k| == 127)) {
+            _? k == '\n' || k == 0d9 || !((#|k| < 32) || (#|k| == 127)) {
                 g = g + 1
                 text = "{k}"
                 kind = 'T'
